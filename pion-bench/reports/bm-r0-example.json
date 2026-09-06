@@ -1,0 +1,16 @@
+{
+  "experiment": "bm-r0",
+  "matrix_slug": "isolated-harness-stub-off-dev-wsl",
+  "scenario_id": "heartbeat-rtt-smoke",
+  "primary_metric": "heartbeat_rtt_ms",
+  "stats": {
+    "min": 0.0,
+    "p50": 0.0,
+    "p95": 0.0,
+    "p99": 0.0,
+    "max": 0.0,
+    "count": 0
+  },
+  "step_timings": [],
+  "error": null
+}

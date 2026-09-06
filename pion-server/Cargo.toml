@@ -1,0 +1,35 @@
+[package]
+name = "pion-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Slim headless Pion control-plane server: Parton ingest routes plus health/readiness on Valence SQLite or Hybrid"
+
+[[bin]]
+name = "pion-server"
+path = "src/main.rs"
+
+[dependencies]
+pion = { path = "../pion", features = ["runtime"] }
+valence = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "signal"] }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+metrics = { workspace = true }
+metrics-exporter-prometheus = { workspace = true }
+
+[features]
+default = []
+db-hybrid = ["pion/db-hybrid"]
+
+[dev-dependencies]
+serial_test = "3"
+
+[lints]
+workspace = true

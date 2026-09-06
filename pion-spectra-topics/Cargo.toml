@@ -1,0 +1,22 @@
+[package]
+name = "pion-spectra-topics"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Stable Spectra topic-name constants for pion's metrics / events (hand-written until spectra-codegen lands)"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+spectra-core = { workspace = true }
+
+[dev-dependencies]
+pion = { path = "../pion", features = ["runtime"] }
+
+[lints]
+workspace = true

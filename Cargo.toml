@@ -1,0 +1,88 @@
+[workspace]
+resolver = "2"
+members = [
+    "pion",
+    "pion-server",
+    "pion-spectra-topics",
+    "pion-testkit",
+    "pion-e2e",
+    "pion-bench",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Sean O'Rourke"]
+repository = "https://github.com/unified-field-dev/pion"
+homepage = "https://github.com/unified-field-dev/pion"
+
+[workspace.dependencies]
+# Unified Field cores — git branch=main from unified-field-dev (standalone checkout; no monorepo path deps)
+valence = { package = "uf-valence", git = "https://github.com/unified-field-dev/valence", branch = "main", default-features = false, features = ["sqlite", "hybrid", "postgres"] }
+valence-codegen = { package = "uf-valence-codegen", git = "https://github.com/unified-field-dev/valence", branch = "main" }
+spectra-core = { package = "uf-spectra-core", git = "https://github.com/unified-field-dev/Spectra", branch = "main" }
+spectra-macros = { git = "https://github.com/unified-field-dev/Spectra", branch = "main" }
+spectra = { package = "uf-spectra", git = "https://github.com/unified-field-dev/Spectra", branch = "main", default-features = false }
+photon = { package = "uf-photon", git = "https://github.com/unified-field-dev/photon", branch = "main", default-features = false, features = ["runtime"] }
+parton = { package = "parton", git = "https://github.com/unified-field-dev/parton", branch = "main" }
+
+# --- Third-party ---
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+rand = "0.8"
+log = "0.4"
+sha2 = "0.10"
+base64 = "0.22"
+subtle = "2.5"
+jsonwebtoken = { version = "9", default-features = false, features = ["use_pem"] }
+futures = "0.3"
+blake3 = "1.5"
+axum = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+metrics = "0.24"
+metrics-exporter-prometheus = { version = "0.18", default-features = false, features = ["http-listener"] }
+criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3"
+
+[workspace.lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[workspace.lints.rustdoc]
+broken_intra_doc_links = "deny"
+private_intra_doc_links = "deny"
+invalid_html_tags = "deny"
+invalid_codeblock_attributes = "deny"
+missing_crate_level_docs = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "allow", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+dbg_macro = "deny"
+todo = "deny"
+unimplemented = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+too_many_arguments = "deny"
+too_many_lines = "deny"
+cognitive_complexity = "deny"
+redundant_field_names = { level = "allow", priority = 1 }
+unnested_or_patterns = "deny"
+must_use_candidate = "allow"
+similar_names = "allow"
+module_name_repetitions = "allow"
+used_underscore_binding = "allow"
+type_complexity = "allow"
+items_after_statements = "allow"
+significant_drop_tightening = "allow"

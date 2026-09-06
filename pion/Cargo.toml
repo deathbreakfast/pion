@@ -1,0 +1,105 @@
+[package]
+name = "pion"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Cell control plane: heartbeat ingest, node/cell inventory, node-action queue, and host enrollment for Unified Field fleets"
+readme = "README.md"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "pion"
+path = "src/main.rs"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true, optional = true }
+valence = { workspace = true, optional = true }
+chrono = { workspace = true, optional = true }
+uuid = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
+log = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+spectra-core = { workspace = true, optional = true }
+spectra-macros = { workspace = true, optional = true }
+spectra = { workspace = true, optional = true }
+parton = { workspace = true, optional = true }
+photon = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
+subtle = { workspace = true, optional = true }
+jsonwebtoken = { workspace = true, optional = true }
+futures = { workspace = true, optional = true }
+axum = { workspace = true, optional = true }
+blake3 = { workspace = true, optional = true }
+metrics = { workspace = true, optional = true }
+
+[features]
+default = []
+# `db-hybrid` selects Hybrid (Postgres+Indra) schema engine ids; default is SQLite.
+db-hybrid = []
+runtime = [
+    "dep:axum",
+    "dep:valence",
+    "dep:async-trait",
+    "dep:chrono",
+    "dep:uuid",
+    "dep:log",
+    "dep:tracing",
+    "dep:spectra-core",
+    "dep:spectra-macros",
+    "dep:spectra",
+    "dep:rand",
+    "dep:parton",
+    "dep:photon",
+    "dep:tokio",
+    "dep:sha2",
+    "dep:base64",
+    "dep:subtle",
+    "dep:jsonwebtoken",
+    "dep:futures",
+    "dep:blake3",
+    "dep:metrics",
+]
+
+[[test]]
+name = "instrumentation_operations"
+required-features = ["runtime"]
+
+[build-dependencies]
+valence-codegen = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tower = { version = "0.5", features = ["util"] }
+spectra-core = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+serde_json = { workspace = true }
+serial_test = "3"
+tempfile = { workspace = true }
+criterion = { workspace = true }
+valence = { workspace = true }
+
+[[example]]
+name = "parton_router_smoke"
+required-features = ["runtime"]
+
+[[bench]]
+name = "micro"
+harness = false
+required-features = ["runtime"]
+
+[lints]
+workspace = true
