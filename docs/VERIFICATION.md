@@ -5,18 +5,37 @@ for the lint policy these commands enforce.
 
 ## Environment
 
-All cargo commands use a single build job and a dedicated target dir so local verification
-doesn't collide with other workspaces on the same machine:
+Match [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) workflow `env`. Use a single
+build job and a dedicated target dir so local verification does not collide with other
+workspaces on the same machine:
 
 ```bash
 export CARGO_BUILD_JOBS=1
 export CARGO_TARGET_DIR=target-pion
+export RUSTFLAGS="-D warnings"
+export PION_ALLOW_INSECURE=1
 ```
+
+Toolchain: stable (same as CI).
+
+## PR CI parity
+
+Required PR jobs in `ci.yml` and the local commands that match them:
+
+| CI job | Local command |
+|--------|----------------|
+| `fmt` | `cargo fmt --all --check` |
+| `check` | `cargo check -p pion --features runtime` and `cargo check -p pion-server` |
+| `clippy` | `cargo clippy -p pion --all-targets --features runtime -- -D warnings` and `cargo clippy -p pion-server --all-targets -- -D warnings` |
+| `test` | `cargo test -p pion --features runtime`, `cargo test -p pion-server`, `cargo test -p pion-e2e`, `cargo test -p pion-spectra-topics` |
+| `docs` | `RUSTDOCFLAGS="-D warnings" cargo doc -p pion --features runtime --no-deps` and `RUSTDOCFLAGS="-D warnings" cargo doc -p pion-spectra-topics --no-deps`, then `cargo test -p pion --doc --features runtime` |
+| `deny` | `cargo deny check` |
+| `coverage` | `cargo llvm-cov -p pion --features runtime --fail-under-lines 50 --summary-only` |
+| `bench-smoke` | `cargo check -p pion-bench` |
 
 ## Commands
 
-Run these in order; each must pass with no warnings. This is the same command block CI runs
-([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)):
+Run these in order; each must pass with no warnings (same block as PR CI):
 
 ```bash
 # Formatting
@@ -32,6 +51,9 @@ cargo clippy -p pion-server --all-targets -- -D warnings
 
 # Unit + integration tests
 cargo test -p pion --features runtime
+cargo test -p pion-server
+cargo test -p pion-e2e
+cargo test -p pion-spectra-topics
 
 # API docs render cleanly (fail on rustdoc warnings)
 RUSTDOCFLAGS="-D warnings" cargo doc -p pion --features runtime --no-deps
@@ -53,7 +75,7 @@ cargo llvm-cov -p pion --features runtime --fail-under-lines 50 --summary-only
 # Criterion micro-benches
 # cargo bench -p pion --features runtime --bench micro
 
-# System bench CLI smoke (CI runs cargo check -p pion-bench)
+# System bench CLI smoke (CI job bench-smoke)
 cargo check -p pion-bench
 ```
 
