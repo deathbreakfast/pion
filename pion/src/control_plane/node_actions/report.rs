@@ -145,7 +145,7 @@ async fn report_node_action_result_inner(
     body: ReportNodeActionResult,
     valence: &Valence,
 ) -> Result<(), NodeActionError> {
-    let cmd = PionNodeActionCommand::get(&body.command_id, valence)
+    let cmd = PionNodeActionCommand::get_used(&body.command_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Node Action Command** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .with_context(|| format!("load command {} for report", body.command_id))?
         .ok_or_else(|| NodeActionError::CommandNotFound {
@@ -201,7 +201,7 @@ async fn report_node_action_result_inner(
         now,
     )
     .context("build node action result row")?;
-    PionNodeActionResult::upsert(&result_id, res, valence)
+    PionNodeActionResult::upsert_used(&result_id, res, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Node Action Result** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .with_context(|| format!("upsert node action result {result_id}"))?;
 

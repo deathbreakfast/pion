@@ -30,7 +30,7 @@ async fn prior_sequences_terminal(
     if correlation_key.is_empty() || sequence <= 0 {
         return Ok(true);
     }
-    let rows = PionNodeActionCommand::query(valence)
+    let rows = PionNodeActionCommand::query_used(valence, valence::use_!("In **Pion control plane**, we **list Pion Node Action Command** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_correlation_key(StringPredicate::Equals(correlation_key.to_string()))
         .where_node_id(StringPredicate::Equals(node_id.to_string()))
         .await
@@ -175,7 +175,7 @@ async fn claim_pending_node_action_locked(
     valence: &Valence,
 ) -> Result<Option<ClaimedNodeAction>> {
     let lease_secs = lease_duration_secs.max(1);
-    let mut pending: Vec<_> = PionNodeActionCommand::query(valence)
+    let mut pending: Vec<_> = PionNodeActionCommand::query_used(valence, valence::use_!("In **Pion control plane**, we **list Pion Node Action Command** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_node_id(StringPredicate::Equals(node_id.to_string()))
         .where_status(StringPredicate::Equals(
             PionNodeActionCommandStatus::Pending.as_str().to_string(),

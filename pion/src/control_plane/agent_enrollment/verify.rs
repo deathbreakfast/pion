@@ -35,7 +35,7 @@ async fn load_pending_enrollment_row(
     valence: &Valence,
     enrollment_id: &str,
 ) -> Result<PionAgentHostEnrollment, EnrollmentError> {
-    let row = PionAgentHostEnrollment::get(enrollment_id, valence)
+    let row = PionAgentHostEnrollment::get_used(enrollment_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Agent Host Enrollment** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .with_context(|| format!("load enrollment {enrollment_id} for verify"))
         .map_err(EnrollmentError::Internal)?
@@ -193,7 +193,7 @@ pub async fn mark_enrollment_claimed(
         Err(EnrollmentError::NotPending) => return Ok(()),
         Err(e) => return Err(e),
     };
-    let row = PionAgentHostEnrollment::get(&enrollment_id, valence)
+    let row = PionAgentHostEnrollment::get_used(&enrollment_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Agent Host Enrollment** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .with_context(|| format!("load enrollment {enrollment_id} to mark claimed"))?
         .ok_or(EnrollmentError::UnknownId)?;

@@ -104,7 +104,7 @@ async fn reconcile_expired_lease_node_action(
 ///
 /// Returns `Err` when the command is unknown or Valence update fails.
 pub async fn cancel_node_action(command_id: &str, valence: &Valence) -> Result<()> {
-    let cmd = PionNodeActionCommand::get(command_id, valence)
+    let cmd = PionNodeActionCommand::get_used(command_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Node Action Command** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .with_context(|| format!("load command {command_id} for cancel"))?
         .ok_or_else(|| anyhow!("unknown command {command_id}"))?;
@@ -117,7 +117,7 @@ pub async fn cancel_node_action(command_id: &str, valence: &Valence) -> Result<(
 }
 
 async fn cancel_node_action_if_non_terminal(command_id: &str, valence: &Valence) -> Result<bool> {
-    let cmd = PionNodeActionCommand::get(command_id, valence)
+    let cmd = PionNodeActionCommand::get_used(command_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Node Action Command** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .with_context(|| format!("load command {command_id} for cancel-if-non-terminal"))?
         .ok_or_else(|| anyhow!("unknown command {command_id}"))?;
@@ -148,7 +148,7 @@ async fn cancel_node_action_if_non_terminal(command_id: &str, valence: &Valence)
 /// Propagates Valence query or update failures.
 pub async fn reconcile_node_action_commands(valence: &Valence) -> Result<()> {
     let now = Utc::now();
-    let rows = PionNodeActionCommand::query(valence)
+    let rows = PionNodeActionCommand::query_used(valence, valence::use_!("In **Pion control plane**, we **list Pion Node Action Command** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
         .await
         .context("query node action commands for reconcile")?;
 
@@ -246,7 +246,7 @@ pub async fn cancel_non_terminal_node_actions_for_correlation(
     if correlation_key.trim().is_empty() {
         return Ok(());
     }
-    let rows = PionNodeActionCommand::query(valence)
+    let rows = PionNodeActionCommand::query_used(valence, valence::use_!("In **Pion control plane**, we **list Pion Node Action Command** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_correlation_key(StringPredicate::Equals(correlation_key.to_string()))
         .await
         .with_context(|| format!("query node action commands for correlation {correlation_key}"))?;
@@ -284,7 +284,7 @@ pub async fn reset_failed_node_actions_for_correlation(
     if correlation_key.trim().is_empty() {
         return Ok(None);
     }
-    let rows = PionNodeActionCommand::query(valence)
+    let rows = PionNodeActionCommand::query_used(valence, valence::use_!("In **Pion control plane**, we **list Pion Node Action Command** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_correlation_key(StringPredicate::Equals(correlation_key.to_string()))
         .await
         .with_context(|| format!("query node action commands for correlation {correlation_key}"))?;
@@ -331,7 +331,7 @@ pub async fn reset_failed_node_actions_for_correlation(
 
     let min_cleanup = failed_min_seq.unwrap_or(1);
 
-    let rows2 = PionNodeActionCommand::query(valence)
+    let rows2 = PionNodeActionCommand::query_used(valence, valence::use_!("In **Pion control plane**, we **list Pion Node Action Command** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
         .where_correlation_key(StringPredicate::Equals(correlation_key.to_string()))
         .await
         .with_context(|| {
@@ -383,7 +383,7 @@ pub async fn extend_node_action_lease(
     valence: &Valence,
 ) -> Result<(), NodeActionError> {
     let add = additional_secs.max(1);
-    let cmd = PionNodeActionCommand::get(command_id, valence)
+    let cmd = PionNodeActionCommand::get_used(command_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Node Action Command** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
         .await
         .with_context(|| format!("load command {command_id} for lease extend"))?
         .ok_or_else(|| NodeActionError::CommandNotFound {
