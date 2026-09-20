@@ -5,9 +5,7 @@ use anyhow::{Context, Result};
 use chrono::Utc;
 use valence::{Model, Valence};
 
-use crate::generated::{
-    PionAgentHostEnrollment, PionAgentHostEnrollmentMutable, PionAgentHostEnrollmentStatus,
-};
+use crate::generated::{PionAgentHostEnrollment, PionAgentHostEnrollmentStatus};
 
 use super::config::enrollment_verify_source_ip;
 use super::error::EnrollmentError;
@@ -193,7 +191,7 @@ pub async fn mark_enrollment_claimed(
         Err(EnrollmentError::NotPending) => return Ok(()),
         Err(e) => return Err(e),
     };
-    let row = PionAgentHostEnrollment::get_used(&enrollment_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Agent Host Enrollment** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let row = PionAgentHostEnrollment::get_used(&enrollment_id, valence, valence::use_!(r#"After a first-seen agent presents a valid **enrollment token** on heartbeat, we **load that enrollment ticket** so the control plane can mark it claimed. Control-plane ingest and Host Setup use this ticket state."#))
         .await
         .with_context(|| format!("load enrollment {enrollment_id} to mark claimed"))?
         .ok_or(EnrollmentError::UnknownId)?;
@@ -202,10 +200,8 @@ pub async fn mark_enrollment_claimed(
     }
     let session_id_for_photon = row.setup_wizard_session_id().clone();
     let now = Utc::now();
-    let m = PionAgentHostEnrollmentMutable::get(&enrollment_id, valence)
-        .await
-        .with_context(|| format!("load mutable enrollment {enrollment_id} to mark claimed"))?;
-    m.set_status(PionAgentHostEnrollmentStatus::Claimed)?
+    row.get_mutable_used(valence, valence::use_!(r#"After a first-seen agent **claims** a host enrollment ticket on heartbeat, we **mark the enrollment claimed** and pin the node id so the ticket cannot be reused. Control-plane ingest and Host Setup UIs use that status."#))
+        .set_status(PionAgentHostEnrollmentStatus::Claimed)?
         .set_claimed_node_id(claimed_node_id.to_string())?
         .set_claimed_at(now)?
         .commit()

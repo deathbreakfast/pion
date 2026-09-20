@@ -7,10 +7,7 @@ use super::error::NodeActionError;
 use chrono::Utc;
 use valence::{Model, Valence};
 
-use crate::generated::{
-    PionNodeActionCommand, PionNodeActionCommandMutable, PionNodeActionCommandStatus,
-    PionNodeActionResult,
-};
+use crate::generated::{PionNodeActionCommand, PionNodeActionCommandStatus, PionNodeActionResult};
 use crate::logging::{terminal_failure_message, NodeActionContext};
 
 use super::shared::{clip, lease_sentinel, CLIP};
@@ -48,9 +45,7 @@ async fn finish_failed_node_action_report(
     valence: &Valence,
 ) -> Result<(), NodeActionError> {
     if *cmd.attempt() < *cmd.max_attempts() {
-        PionNodeActionCommandMutable::get(command_id, valence)
-            .await
-            .with_context(|| format!("load command {command_id} to requeue after failure"))?
+        cmd.get_mutable_used(valence, valence::use_!(r#"When an agent **reports failure** with attempts remaining, we **requeue the command as pending** with the error text so it can be claimed again. Agents and operators use that retry state."#))
             .set_status(PionNodeActionCommandStatus::Pending)?
             .set_last_error(clip(last, CLIP))?
             .set_lease_expires_at(lease_sentinel())?
@@ -66,9 +61,7 @@ async fn finish_failed_node_action_report(
         }
         crate::maybe_publish_setup_wizard_tracked_photon(correlation_key, "retry_pending").await;
     } else {
-        PionNodeActionCommandMutable::get(command_id, valence)
-            .await
-            .with_context(|| format!("load command {command_id} to mark terminal failure"))?
+        cmd.get_mutable_used(valence, valence::use_!(r#"When an agent **reports failure** at max attempts, we **mark the command failed** with the error text. Operators and wizard tracking see the terminal failure."#))
             .set_status(PionNodeActionCommandStatus::Failed)?
             .set_last_error(clip(last, CLIP))?
             .set_updated_at(now)?
@@ -206,9 +199,7 @@ async fn report_node_action_result_inner(
         .with_context(|| format!("upsert node action result {result_id}"))?;
 
     if body.success {
-        PionNodeActionCommandMutable::get(&body.command_id, valence)
-            .await
-            .with_context(|| format!("load command {} to mark success", body.command_id))?
+        cmd.get_mutable_used(valence, valence::use_!(r#"When an agent **reports success** for a running node action, we **mark the command succeeded** so the queue and wizards advance. Operators and tracking UIs see the success."#))
             .set_status(PionNodeActionCommandStatus::Succeeded)?
             .set_updated_at(now)?
             .commit()

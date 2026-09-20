@@ -16,10 +16,9 @@ use valence::{Model, Valence};
 
 use crate::generated::{
     PionControlPlaneCell, PionControlPlaneCellMode, PionControlPlaneCellStatus,
-    PionControlPlaneNode, PionControlPlaneNodeConnectionMode, PionControlPlaneNodeMutable,
-    PionControlPlaneObservedStatus, PionControlPlaneObservedStatusSource, PionNodeReachability,
-    PionNodeReachabilityCpConnectSource, PionNodeReachabilityMutable,
-    PionNodeReachabilityRuntimeConnectSource,
+    PionControlPlaneNode, PionControlPlaneNodeConnectionMode, PionControlPlaneObservedStatus,
+    PionControlPlaneObservedStatusSource, PionNodeReachability,
+    PionNodeReachabilityCpConnectSource, PionNodeReachabilityRuntimeConnectSource,
 };
 
 use crate::logging::{HandoffDirectiveContext, HeartbeatContext};
@@ -78,15 +77,11 @@ async fn upsert_node_record(
     now: chrono::DateTime<Utc>,
     valence: &Valence,
 ) -> Result<()> {
-    if let Some(existing) = PionControlPlaneNode::get_used(&report.node_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Control Plane Node** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    if let Some(existing) = PionControlPlaneNode::get_used(&report.node_id, valence, valence::use_!(r#"On each agent **heartbeat**, we **load the control-plane node inventory row** so we can refresh cell, hostname, status, and capabilities. Operators and placement logic use this host record."#))
         .await
         .with_context(|| format!("load node {} for heartbeat upsert", report.node_id))?
     {
-        let mutable = PionControlPlaneNodeMutable::get(&report.node_id, valence)
-            .await
-            .with_context(|| {
-                format!("load mutable node {} for heartbeat upsert", report.node_id)
-            })?;
+        let mutable = existing.get_mutable_used(valence, valence::use_!(r#"On each agent **heartbeat**, we **refresh the control-plane node inventory** (cell, hostname, status, capabilities, labels) so operators and placement logic see current host state. Control-plane services use the updated node record."#));
         let failure_domain = existing.failure_domain().clone();
         mutable
             .set_cell_id(report.cell_id.clone())?
@@ -130,14 +125,12 @@ async fn upsert_node_reachability(
     let peer_trim = peer_ip.map(str::trim).filter(|s| !s.is_empty());
     let node_rid = valence::RecordId::new("pion_control_plane_node", node_id);
 
-    match PionNodeReachability::get_used(node_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Node Reachability** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    match PionNodeReachability::get_used(node_id, valence, valence::use_!(r#"On agent **heartbeat**, we **load the node's reachability row** so we can refresh the observed peer IP the control plane uses to reconnect. Control-plane services and operators use that address metadata."#))
         .await
         .with_context(|| format!("load reachability row for node {node_id}"))?
     {
         Some(existing) => {
-            let mut m = PionNodeReachabilityMutable::get(node_id, valence)
-                .await
-                .with_context(|| format!("load mutable reachability row for node {node_id}"))?;
+            let mut m = existing.get_mutable_used(valence, valence::use_!(r#"On agent **heartbeat**, we **update the node's reachability row** with the observed peer IP so the control plane knows how to reconnect. Control-plane services and operators use that address metadata."#));
             if let Some(p) = peer_trim {
                 m = m.set_peer_ip(p.to_string())?;
                 if matches!(

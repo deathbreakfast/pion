@@ -8,9 +8,7 @@ use chrono::{DateTime, Utc};
 use rand::RngCore;
 use valence::{Model, Valence};
 
-use crate::generated::{
-    PionAgentHandoffDirective, PionAgentHandoffDirectiveMutable, PionAgentHandoffDirectiveStatus,
-};
+use crate::generated::{PionAgentHandoffDirective, PionAgentHandoffDirectiveStatus};
 use parton::{handoff_reenroll_directive_signature_message_v1, AgentDirective};
 
 fn epoch() -> DateTime<Utc> {
@@ -201,12 +199,10 @@ pub async fn acknowledge_handoff_directives_for_heartbeat(
         if row.new_token_sha256_hex().trim() != digest {
             continue;
         }
-        let Some(rid) = row.id() else {
+        if row.id().is_none() {
             continue;
-        };
-        let id = valence::extract_id_from_record(rid).map_err(|e| anyhow::anyhow!("{e}"))?;
-        PionAgentHandoffDirectiveMutable::get(id.as_str(), valence)
-            .await?
+        }
+        row.get_mutable_used(valence, valence::use_!(r#"When an agent heartbeat reports an **applied handoff directive token**, we **mark matching delivered directives acknowledged** so the control plane stops re-sending them. Agents and operators on the control plane use that status."#))
             .set_status(PionAgentHandoffDirectiveStatus::Acknowledged)?
             .set_acknowledged_at(now)?
             .commit()
@@ -239,8 +235,19 @@ async fn transition_pending_to_delivered(
     directive_table_id: &str,
     now: DateTime<Utc>,
 ) -> valence::Result<()> {
-    PionAgentHandoffDirectiveMutable::get(directive_table_id, valence)
-        .await?
+    let existing = PionAgentHandoffDirective::get_used(
+        directive_table_id,
+        valence,
+        valence::use_!(r#"When the control plane is about to **deliver** a pending agent handoff directive on heartbeat, we **load that directive** so we can mark delivery. The agent and control-plane operators use this directive."#),
+    )
+    .await?
+    .ok_or_else(|| {
+        valence::Error::Validation(format!(
+            "Entity not found: pion_agent_handoff_directive:{directive_table_id}"
+        ))
+    })?;
+    existing
+        .get_mutable_used(valence, valence::use_!(r#"When the control plane **delivers** a pending agent handoff directive on heartbeat, we **mark it delivered** and stamp delivery time so the agent receives it once. The agent and control-plane operators use that status."#))
         .set_status(PionAgentHandoffDirectiveStatus::Delivered)?
         .set_delivered_at(now)?
         .commit()

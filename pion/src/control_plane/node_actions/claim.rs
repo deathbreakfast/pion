@@ -5,15 +5,12 @@ use std::collections::HashMap;
 
 use anyhow::{anyhow, Context, Result};
 use chrono::Utc;
-use valence::Error as ValenceError;
 use valence::{SortDirection, StringPredicate, Valence};
 
 use crate::control_plane::secret_resolver::{
     default_secret_resolver, resolve_secrets_in_json, value_contains_secret_ref_placeholder,
 };
-use crate::generated::{
-    PionNodeActionCommand, PionNodeActionCommandMutable, PionNodeActionCommandStatus,
-};
+use crate::generated::{PionNodeActionCommand, PionNodeActionCommandStatus};
 use crate::logging::NodeActionContext;
 
 use super::shared::{
@@ -59,9 +56,7 @@ async fn resolve_claim_payload_or_mark_failed(
         return Ok(true);
     }
     let Some(res) = default_secret_resolver() else {
-        PionNodeActionCommandMutable::get(id, valence)
-            .await
-            .with_context(|| format!("load command {id} to mark secret-resolver-missing failure"))?
+        row.get_mutable_used(valence, valence::use_!(r#"During **node action claim**, when the payload has secret placeholders but no secret resolver is installed, we **mark the command failed** with that error so the agent does not run an incomplete payload. Operators and wizard tracking see the failure."#))
             .set_status(PionNodeActionCommandStatus::Failed)?
             .set_last_error(clip(
                 "claim-time: payload has $secret_ref but no pion::SecretResolver installed; configure set_default_secret_resolver in the process host",
@@ -77,9 +72,7 @@ async fn resolve_claim_payload_or_mark_failed(
         return Ok(false);
     };
     if let Err(e) = resolve_secrets_in_json(valence, res.as_ref(), out_payload).await {
-        PionNodeActionCommandMutable::get(id, valence)
-            .await
-            .with_context(|| format!("load command {id} to mark secret resolution failure"))?
+        row.get_mutable_used(valence, valence::use_!(r#"During **node action claim**, when secret placeholders cannot be resolved, we **mark the command failed** with the resolution error so the agent does not run an incomplete payload. Operators and wizard tracking see the failure."#))
             .set_status(PionNodeActionCommandStatus::Failed)?
             .set_last_error(clip(&format!("claim-time secret resolution: {e}"), CLIP))?
             .set_lease_expires_at(super::shared::lease_sentinel())?
@@ -239,14 +232,7 @@ async fn try_claim_candidate(
         return Ok(None);
     }
 
-    let mut_row = match PionNodeActionCommandMutable::get(id, valence).await {
-        Ok(r) => r,
-        Err(ValenceError::PendingDeletion(_)) => return Ok(None),
-        Err(e) => {
-            return Err(anyhow::Error::from(e))
-                .with_context(|| format!("load command {id} for claim"))
-        }
-    };
+    let mut_row = again.get_mutable_used(valence, valence::use_!(r#"When an agent **claims** a pending node action, we **move the command to running**, bump the attempt, and set a lease and claim fence so only one claimer wins. The agent and control-plane operators use that leased command."#));
     // Valence has no compare-and-swap / conditional-update primitive (`commit()` is an
     // unconditional last-write-wins overwrite), so two concurrent claimers can both read the
     // same `pending` row and both `commit()` a transition to `running`. `lease_expires_at` can't
