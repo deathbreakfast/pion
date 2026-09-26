@@ -5,9 +5,7 @@ use chrono::Utc;
 use uuid::Uuid;
 use valence::{Model, Valence};
 
-use crate::generated::{
-    PionAgentHostEnrollment, PionAgentHostEnrollmentMutable, PionAgentHostEnrollmentStatus,
-};
+use crate::generated::{PionAgentHostEnrollment, PionAgentHostEnrollmentStatus};
 
 use super::config::{normalize_agent_host_hint, DEFAULT_SETUP_WIZARD_SESSION_RECORD_ID};
 use super::token::{build_full_token, hex_sha256};
@@ -79,7 +77,7 @@ pub async fn create_host_enrollment(
         None,
     )
     .context("build host enrollment row")?;
-    PionAgentHostEnrollment::upsert_used(&enrollment_id, row, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Agent Host Enrollment** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields."))
+    PionAgentHostEnrollment::upsert(&enrollment_id, row, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Agent Host Enrollment** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields."))
         .await
         .with_context(|| format!("upsert host enrollment {enrollment_id}"))?;
     tracing::info!(
@@ -107,7 +105,7 @@ pub async fn set_host_enrollment_pubkey(
     enrollment_id: &str,
     enrollment_pubkey_b64: &str,
 ) -> Result<()> {
-    let row = PionAgentHostEnrollment::get_used(enrollment_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Agent Host Enrollment** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let row = PionAgentHostEnrollment::get(enrollment_id, valence, valence::use_!(r"During **host enrollment** in the Pion control plane, we **load the pending enrollment ticket** so we can attach the agent's sealed-box public key. Operators running Host Setup and control-plane services use this ticket; the agent does not read the Valence row itself."))
         .await
         .with_context(|| format!("load enrollment {enrollment_id} to set pubkey"))?
         .ok_or_else(|| anyhow!("enrollment {enrollment_id} not found"))?;
@@ -118,9 +116,8 @@ pub async fn set_host_enrollment_pubkey(
     if pk.is_empty() {
         anyhow::bail!("enrollment_pubkey is empty");
     }
-    let m = PionAgentHostEnrollmentMutable::get(enrollment_id, valence)
-        .await
-        .with_context(|| format!("load mutable enrollment {enrollment_id} to set pubkey"))?
+    let m = row
+        .get_mutable(valence, valence::use_!(r"During **host enrollment** in the Pion control plane, we **write the agent's sealed-box public key** onto the pending enrollment ticket so later handoff can encrypt material to that host. Operators running Host Setup and control-plane services use the updated ticket."))
         .set_enrollment_pubkey(pk.to_string())
         .with_context(|| format!("set enrollment_pubkey on enrollment {enrollment_id}"))?;
     m.commit()
@@ -135,7 +132,7 @@ pub async fn set_host_enrollment_pubkey(
 ///
 /// Returns `Err` when the enrollment is missing or Valence update fails.
 pub async fn revoke_host_enrollment(valence: &Valence, enrollment_id: &str) -> Result<()> {
-    let row = PionAgentHostEnrollment::get_used(enrollment_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Agent Host Enrollment** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let row = PionAgentHostEnrollment::get(enrollment_id, valence, valence::use_!(r"When Host Setup **revokes** a pending host enrollment ticket, we **load that enrollment** to confirm it is still pending before changing its status. Operators and the setup wizard use this ticket state."))
         .await
         .with_context(|| format!("load enrollment {enrollment_id} to revoke"))?
         .ok_or_else(|| anyhow!("enrollment not found"))?;
@@ -145,10 +142,8 @@ pub async fn revoke_host_enrollment(valence: &Valence, enrollment_id: &str) -> R
     let session_id_for_photon = row.setup_wizard_session_id().clone();
     let enrollment_id_owned = enrollment_id.to_string();
     let now = Utc::now();
-    let m = PionAgentHostEnrollmentMutable::get(enrollment_id, valence)
-        .await
-        .with_context(|| format!("load mutable enrollment {enrollment_id} to revoke"))?;
-    m.set_status(PionAgentHostEnrollmentStatus::Revoked)?
+    row.get_mutable(valence, valence::use_!(r"When Host Setup **revokes** a pending host enrollment ticket, we **mark that enrollment revoked** so its wire token can no longer be claimed. Operators and the setup wizard see the revoked status on refresh."))
+        .set_status(PionAgentHostEnrollmentStatus::Revoked)?
         .set_revoked_at(now)?
         .commit()
         .await
@@ -191,7 +186,7 @@ pub async fn list_enrollments_for_bootstrap_session(
     valence: &Valence,
     bootstrap_session_id: &str,
 ) -> Result<Vec<PionAgentHostEnrollment>> {
-    let mut rows = PionAgentHostEnrollment::query_used(valence, valence::use_!("In **Pion control plane**, we **list Pion Agent Host Enrollment** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
+    let mut rows = PionAgentHostEnrollment::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Agent Host Enrollment** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
         .await
         .context("query host enrollments for session list")?;
     let q = bootstrap_session_id.trim();
