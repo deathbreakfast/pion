@@ -1,4 +1,4 @@
-//! Slim headless **`pion-server`** binary.
+//! Slim headless `pion-server` binary.
 //!
 //! Serves the Parton agent ingest surface ([`pion::runtime::parton_router`]) on Valence
 //! (`SQLite` by default, or Hybrid with `--features db-hybrid` + `DATABASE_URL`), plus operator
@@ -6,19 +6,24 @@
 //!
 //! # Features
 //!
-//! - **Parton agent HTTP** — `/api/parton/*` via [`pion::runtime::parton_router`]
-//! - **Health / readiness** — `/health`, `/internal/db-ready`, `/cell/readiness`
-//! - **Prometheus** — `/metrics` (library counters from [`pion::prom_metrics`])
+//! - Parton agent HTTP: `/api/parton/*` via [`pion::runtime::parton_router`].
+//! - Health and readiness: `/health`, `/internal/db-ready`, `/cell/readiness`.
+//! - Prometheus: `/metrics` (library counters from [`pion::prom_metrics`]).
 //!
 //! # Getting started
 //!
-//! Prerequisites: set `PARTON_SHARED_TOKEN` (or lab-only `PION_ALLOW_INSECURE=1`).
+//! Prerequisites: set `PARTON_SHARED_TOKEN` (or `PION_ALLOW_INSECURE=1` for local testing only).
 //!
 //! ```bash
 //! export PARTON_SHARED_TOKEN=dev-shared-token
-//! export CARGO_BUILD_JOBS=1
-//! export CARGO_TARGET_DIR=target-pion
 //! cargo run -p pion-server
+//! ```
+//!
+//! In a second shell, confirm it is serving:
+//!
+//! ```bash
+//! curl -s localhost:3000/health
+//! curl -s localhost:3000/cell/readiness   # {"ready":true}
 //! ```
 //!
 //! Observable outcome: process listens on `PION_BIND` (default `127.0.0.1:3000`);
@@ -67,7 +72,7 @@
 //!
 //! | Flag | Effect |
 //! |------|--------|
-//! | **`db-hybrid`** | Enables `pion/db-hybrid` (Postgres + in-memory cache) |
+//! | `db-hybrid` | Enables `pion/db-hybrid` (Postgres + in-memory cache) |
 
 use std::net::SocketAddr;
 use std::sync::{Arc, OnceLock};
@@ -231,7 +236,7 @@ async fn health() -> impl IntoResponse {
 }
 
 /// Checks that Valence resolves its default backend, using the given `operation` label for the
-/// system actor. Shared by `/internal/db-ready` and `/cell/readiness` (F13).
+/// system actor. Shared by `/internal/db-ready` and `/cell/readiness`.
 fn valence_backend_error(state: &AppState, operation: &str) -> Option<String> {
     let valence = match Valence::builder()
         .database_router(Arc::clone(&state.router))
@@ -258,7 +263,7 @@ async fn db_ready(State(state): State<AppState>) -> impl IntoResponse {
     }
 }
 
-/// Cell readiness JSON for orchestration probes (F13).
+/// Cell readiness JSON for orchestration probes.
 ///
 /// `ready:true` requires both the Valence backend to be reachable (mirrors `/internal/db-ready`)
 /// and the process to be securely configured (`PARTON_SHARED_TOKEN` set, or the explicit
@@ -314,7 +319,7 @@ mod tests {
         }
     }
 
-    /// F13: `/cell/readiness` must not report `ready:true` with a reachable backend but no
+    /// `/cell/readiness` must not report `ready:true` with a reachable backend but no
     /// authentication configured — an orchestrator shouldn't route agent traffic to a replica
     /// that would silently accept unauthenticated `/api/parton/*` requests.
     #[tokio::test]

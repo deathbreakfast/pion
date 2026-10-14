@@ -9,9 +9,9 @@
 //!
 //! # Features
 //!
-//! - **Event topics** — [`event`] table names + `*_topic()` helpers
-//! - **Metric topics** — [`metric`] family names + `*_topic()` helpers
-//! - **Store id** — [`STORE`] (`"pion"`) shared by every registered schema
+//! - Event topics: [`event`] table names and `*_topic()` helpers.
+//! - Metric topics: [`metric`] family names and `*_topic()` helpers.
+//! - Store id: [`STORE`] (`"pion"`) shared by every registered schema.
 //!
 //! # Getting started
 //!
@@ -55,7 +55,7 @@ pub mod event {
     pub const HEARTBEAT_LOG: &str = "pion_heartbeat_log";
     /// `pion_handoff_log` — Handoff directive deliver, ack, and collect trace.
     pub const HANDOFF_LOG: &str = "pion_handoff_log";
-    /// `pion_migration_log` — Legacy `gluon_*` to `pion_*` table migration progress.
+    /// `pion_migration_log` — progress of the legacy control-plane table migration.
     pub const MIGRATION_LOG: &str = "pion_migration_log";
     /// `pion_node_action_log` — Control-plane node action queue lifecycle trace.
     pub const NODE_ACTION_LOG: &str = "pion_node_action_log";

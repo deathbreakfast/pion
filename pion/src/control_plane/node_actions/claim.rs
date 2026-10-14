@@ -56,7 +56,7 @@ async fn resolve_claim_payload_or_mark_failed(
         return Ok(true);
     }
     let Some(res) = default_secret_resolver() else {
-        row.get_mutable(valence, valence::use_!(r"During **node action claim**, when the payload has secret placeholders but no secret resolver is installed, we **mark the command failed** with that error so the agent does not run an incomplete payload. Operators and wizard tracking see the failure."))
+        row.get_mutable(valence, valence::use_!(r"During **node action claim**, when the payload has secret placeholders but no secret resolver is installed, we **mark the command failed** with that error so the agent does not run an incomplete payload. Operators and any registered bootstrap notifier see the failure."))
             .set_status(PionNodeActionCommandStatus::Failed)?
             .set_last_error(clip(
                 "claim-time: payload has $secret_ref but no pion::SecretResolver installed; configure set_default_secret_resolver in the process host",
@@ -72,7 +72,7 @@ async fn resolve_claim_payload_or_mark_failed(
         return Ok(false);
     };
     if let Err(e) = resolve_secrets_in_json(valence, res.as_ref(), out_payload).await {
-        row.get_mutable(valence, valence::use_!(r"During **node action claim**, when secret placeholders cannot be resolved, we **mark the command failed** with the resolution error so the agent does not run an incomplete payload. Operators and wizard tracking see the failure."))
+        row.get_mutable(valence, valence::use_!(r"During **node action claim**, when secret placeholders cannot be resolved, we **mark the command failed** with the resolution error so the agent does not run an incomplete payload. Operators and any registered bootstrap notifier see the failure."))
             .set_status(PionNodeActionCommandStatus::Failed)?
             .set_last_error(clip(&format!("claim-time secret resolution: {e}"), CLIP))?
             .set_lease_expires_at(super::shared::lease_sentinel())?
@@ -113,7 +113,7 @@ async fn resolve_claim_payload_or_mark_failed(
 /// # }
 /// ```
 ///
-/// # F12: concurrency note
+/// # Concurrency
 ///
 /// Serializes concurrent claim attempts *for the same `node_id` within this process* via an
 /// in-process per-node mutex, then additionally verifies the commit via a per-attempt
@@ -147,7 +147,7 @@ pub async fn claim_pending_node_action(
 }
 
 /// Per-node-id in-process claim lock registry backing [`claim_pending_node_action`]'s
-/// intra-process serialization (F12).
+/// intra-process serialization.
 fn claim_lock_for_node(node_id: &str) -> std::sync::Arc<tokio::sync::Mutex<()>> {
     static LOCKS: std::sync::OnceLock<
         std::sync::Mutex<HashMap<String, std::sync::Arc<tokio::sync::Mutex<()>>>>,
@@ -207,7 +207,7 @@ async fn claim_pending_node_action_locked(
 ///
 /// Returns `Ok(None)` for any reason the caller should skip to the next candidate (row no longer
 /// pending, deleted mid-flight, or a lost race against a concurrent claimer — see
-/// [`claim_pending_node_action`]'s F12 doc note); `Ok(Some(_))` once fully claimed.
+/// [`claim_pending_node_action`]'s concurrency note); `Ok(Some(_))` once fully claimed.
 async fn try_claim_candidate(
     id: &str,
     node_id: &str,
@@ -317,7 +317,7 @@ async fn try_claim_candidate(
 }
 
 /// Re-reads the command row after `commit()` and checks that our `fence` value is still present
-/// (see [`try_claim_candidate`]'s F12 doc note on why a random per-attempt token, not a
+/// (see [`try_claim_candidate`]'s concurrency note on why a random per-attempt token, not a
 /// timestamp, is used to detect an overwrite by a concurrent claimer).
 async fn won_claim_race(id: &str, fence: &str, valence: &Valence) -> Result<bool> {
     let Some(verify) = get_node_action_treating_deletion_as_missing(id, valence).await? else {

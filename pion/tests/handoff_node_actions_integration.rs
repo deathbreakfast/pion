@@ -45,7 +45,7 @@ async fn ready_node(v: &valence::Valence, node_id: &str, cell_id: &str) -> anyho
         apply_failed: None,
     };
     ingest_agent_heartbeat(&report, Some("127.0.0.1"), v).await?;
-    // Capabilities default to disabled (F7); opt this node into deploy/stop for handoff tests.
+    // Capabilities default to disabled; opt this node into deploy/stop for handoff tests.
     for action in [ContainerActionKind::Deploy, ContainerActionKind::Stop] {
         upsert_node_action_capability(node_id, action, true, "test", None, None, v).await?;
     }
@@ -89,7 +89,7 @@ async fn deploy_handoff_enqueue_claim_preserves_payload() -> anyhow::Result<()> 
         .await?
         .expect("claimed command");
     assert_eq!(claimed.action_kind, NODE_ACTION_KIND_DEPLOY_HANDOFF);
-    // Surreal may wrap colon-bearing strings in backticks on round-trip; assert semantic fields.
+    // Assert semantic fields rather than raw stored-string formatting.
     assert_eq!(
         claimed
             .payload_json

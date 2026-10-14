@@ -21,7 +21,7 @@ use crate::storage::{
 pub enum StorageProfile {
     /// File or `:memory:` `SQLite` (embedded host pattern).
     Sqlite,
-    /// Postgres primary + in-process `IndraDB` cache (remote-fleet pattern).
+    /// Postgres primary + in-process `IndraDB` cache (shared fleet database pattern).
     Hybrid,
 }
 
@@ -91,7 +91,7 @@ impl BootstrappedValence {
 ///   `--features db-hybrid`.
 ///
 /// Always sets `VALENCE_OWNERSHIP_UNIFIED_FETCH=0` and `VALENCE_OWNERSHIP_COLOCATE=0` unless
-/// already set (`SQLite` / hybrid do not use Surreal-style ownership JOINs).
+/// already set (`SQLite` / hybrid do not use ownership JOINs).
 ///
 /// # Errors
 ///
@@ -175,7 +175,7 @@ pub async fn bootstrap_valence_from_env() -> Result<BootstrappedValence> {
     bootstrap_valence(compile).await
 }
 
-/// In-memory `SQLite` bootstrap for `IsolatedHarness` / unit tests.
+/// In-memory `SQLite` bootstrap for unit tests and the in-process test harness.
 ///
 /// # Errors
 ///

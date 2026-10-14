@@ -43,7 +43,7 @@ async fn reconcile_stale_pending_node_action(
         return Ok(());
     }
     if cmd
-        .get_mutable(valence, valence::use_!(r"During **node action reconcile**, when no agent claimed a pending command in time, we **mark it failed** so operators know it timed out. Wizard tracking and operators see the failure."))
+        .get_mutable(valence, valence::use_!(r"During **node action reconcile**, when no agent claimed a pending command in time, we **mark it failed** so operators know it timed out. Operators and any registered bootstrap notifier see the failure."))
         .set_status(PionNodeActionCommandStatus::Failed)?
         .set_last_error("No agent claimed this command within timeout".to_string())?
         .set_updated_at(now)?
@@ -66,7 +66,7 @@ async fn reconcile_expired_lease_node_action(
 ) -> Result<()> {
     if *cmd.attempt() >= *cmd.max_attempts() {
         if cmd
-            .get_mutable(valence, valence::use_!(r"During **node action reconcile**, when a running command's lease expires after max attempts, we **mark it failed**. Operators and wizard tracking see the terminal failure."))
+            .get_mutable(valence, valence::use_!(r"During **node action reconcile**, when a running command's lease expires after max attempts, we **mark it failed**. Operators and any registered bootstrap notifier see the terminal failure."))
             .set_status(PionNodeActionCommandStatus::Failed)?
             .set_last_error("lease expired after max attempts".to_string())?
             .set_updated_at(now)?
@@ -124,7 +124,7 @@ async fn cancel_node_action_if_non_terminal(command_id: &str, valence: &Valence)
         return Ok(false);
     }
     let now = Utc::now();
-    cmd.get_mutable(valence, valence::use_!(r"When an operator or orchestrator **cancels** a non-terminal node action, we **mark the command cancelled** so agents stop working it. Operators and wizard tracking see the cancellation."))
+    cmd.get_mutable(valence, valence::use_!(r"When an operator or orchestrator **cancels** a non-terminal node action, we **mark the command cancelled** so agents stop working it. Operators and any registered bootstrap notifier see the cancellation."))
         .set_status(PionNodeActionCommandStatus::Cancelled)?
         .set_updated_at(now)?
         .commit()
@@ -188,8 +188,8 @@ pub async fn get_node_action_command(
 
 /// Default retry budget for newly enqueued commands.
 ///
-/// Reads `GLUON_NODE_ACTION_MAX_ATTEMPTS` (positive `i64`); defaults to **3** when unset
-/// or invalid.
+/// Reads the `GLUON_NODE_ACTION_MAX_ATTEMPTS` environment variable (a positive `i64`; the
+/// `GLUON_` prefix is a historical name) and defaults to 3 when it is unset or invalid.
 #[must_use]
 pub fn default_max_attempts() -> i64 {
     std::env::var("GLUON_NODE_ACTION_MAX_ATTEMPTS")
@@ -201,7 +201,8 @@ pub fn default_max_attempts() -> i64 {
 
 /// Max time a command may stay `pending` before reconcile marks it failed (never claimed).
 ///
-/// Reads `GLUON_NODE_ACTION_PENDING_TIMEOUT_SECS` (positive seconds); defaults to **300**.
+/// Reads the `GLUON_NODE_ACTION_PENDING_TIMEOUT_SECS` environment variable (positive seconds)
+/// and defaults to 300.
 #[must_use]
 pub fn pending_timeout_duration() -> Duration {
     std::env::var("GLUON_NODE_ACTION_PENDING_TIMEOUT_SECS")
@@ -216,7 +217,8 @@ pub fn pending_timeout_duration() -> Duration {
 
 /// Default claim lease duration when the agent omits `lease_duration_secs`.
 ///
-/// Reads `GLUON_NODE_ACTION_LEASE_SECS` (positive seconds); defaults to **120**.
+/// Reads the `GLUON_NODE_ACTION_LEASE_SECS` environment variable (positive seconds) and
+/// defaults to 120.
 #[must_use]
 pub fn default_lease_duration_secs() -> u64 {
     std::env::var("GLUON_NODE_ACTION_LEASE_SECS")

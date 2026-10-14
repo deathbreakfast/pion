@@ -8,6 +8,8 @@ repository.workspace = true
 homepage.workspace = true
 description = "Cell control plane: heartbeat ingest, node/cell inventory, node-action queue, and host enrollment for Unified Field fleets"
 readme = "README.md"
+keywords = ["control-plane", "fleet", "heartbeat", "enrollment", "orchestration"]
+categories = ["network-programming", "asynchronous"]
 
 [lib]
 path = "src/lib.rs"
@@ -76,7 +78,7 @@ runtime = [
     "dep:metrics",
 ]
 # Chronon script inventory + default-job registration for expired lease sweeps.
-# Composite hosts enable this and call `scripts::register_default_jobs` at boot.
+# Host applications enable this and call `scripts::register_default_jobs` at boot.
 chronon = [
     "runtime",
     "dep:chronon-core",
