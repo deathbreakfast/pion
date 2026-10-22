@@ -74,7 +74,7 @@ async fn persist_action_event(
         observed_at,
         observed_at,
     )?;
-    PionControlPlaneActionEvent::upsert(&event_id, record, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Control Plane Action Event** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields.")).await?;
+    PionControlPlaneActionEvent::upsert(&event_id, record, valence, valence::use_!("After a container action (start, stop, deploy and so on) runs on a host, we **save an action event** with the node, container, action, outcome and message. The same event is returned to the caller as the action result, and the stored copy is the control plane's record of what was done to that container.")).await?;
     Ok(RuntimeContainerActionResult {
         event_id,
         node_id: node_id.to_string(),

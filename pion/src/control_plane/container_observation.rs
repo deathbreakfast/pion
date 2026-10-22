@@ -86,7 +86,7 @@ pub async fn upsert_observations(
     for c in &report.containers.containers {
         let row_id = observation_row_id(&report.node_id, &c.container_id);
         let next_state = map_state(c.state);
-        let existing = PionContainerObservation::get(&row_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Container Observation** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it.")).await?;
+        let existing = PionContainerObservation::get(&row_id, valence, valence::use_!("For each container in an agent **heartbeat**, we **load the last recorded observation of that container** to see whether its state changed. The control plane keeps the original first-seen time when the state is unchanged and reports a transition when it changed.")).await?;
         let prev_state = existing.as_ref().map(|row| row.state().clone());
         let first_observed_at = if prev_state.as_ref() == Some(&next_state) {
             existing
@@ -129,7 +129,7 @@ pub async fn upsert_observations(
             ingested_at,
             c.probe_error.clone(),
         )?;
-        PionContainerObservation::upsert(&row_id, row, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Container Observation** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields.")).await?;
+        PionContainerObservation::upsert(&row_id, row, valence, valence::use_!("For each container in an agent **heartbeat**, we **save the latest observation**: state, health, restart count, timestamps and any probe error. This is the control plane's current picture of what is running on that host.")).await?;
     }
 
     prune_stale(&report.node_id, heartbeat_stale_cutoff(), valence).await?;
@@ -142,14 +142,14 @@ pub async fn prune_stale(
     stale_before: chrono::DateTime<Utc>,
     valence: &Valence,
 ) -> Result<()> {
-    let stale = PionContainerObservation::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Container Observation** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
+    let stale = PionContainerObservation::query(valence, valence::use_!("After an agent **heartbeat**, we **list the container observations of that node** that have not been seen since the cutoff. These are containers that no longer exist on the host, and they are deleted next."))
         .where_node_id(StringPredicate::Equals(node_id.to_string()))
         .where_last_observed_at(DateTimePredicate::Before(stale_before))
         .await?;
     for row in stale {
         if let Some(id) = row.id() {
             let key = id.id().to_string();
-            let _ = PionContainerObservation::delete(&key, valence, valence::use_!("When **Pion control plane** finishes cleanup, we **remove Pion Container Observation** so leftover rows do not remain after the operation. Only the cleanup path for **Pion control plane** uses this step; it is not shown as a standalone end-user page by itself.")).await;
+            let _ = PionContainerObservation::delete(&key, valence, valence::use_!("After an agent **heartbeat**, we **delete the observations of containers** on that node that were not seen since the cutoff. The container no longer exists on the host, so the control plane stops reporting it.")).await;
         }
     }
     Ok(())

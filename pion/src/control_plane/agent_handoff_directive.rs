@@ -167,7 +167,7 @@ pub async fn upsert_pending_handoff_directive(
         epoch(),
     )?;
 
-    PionAgentHandoffDirective::upsert(directive_id, row, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Agent Handoff Directive** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields.")).await?;
+    PionAgentHandoffDirective::upsert(directive_id, row, valence, valence::use_!("When an operator **issues a handoff directive** to a host, we **save it as pending** with the encrypted material, its digest, its validity window and the issuer's signature. The control plane delivers it to the target agent on that node's next heartbeat.")).await?;
     Ok(())
 }
 
@@ -187,7 +187,7 @@ pub async fn acknowledge_handoff_directives_for_heartbeat(
         return Ok(());
     };
 
-    let rows = PionAgentHandoffDirective::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Agent Handoff Directive** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors.")).await?;
+    let rows = PionAgentHandoffDirective::query(valence, valence::use_!("When an agent's **heartbeat reports an applied directive token**, we **list the handoff directives** to find the delivered ones for that node whose digest matches, so they can be marked acknowledged. The list is used only to find those rows and is not returned to anyone.")).await?;
     let now = Utc::now();
     for row in rows {
         if row.target_node_id().trim() != report.node_id.trim() {
@@ -266,7 +266,7 @@ pub async fn collect_handoff_directives_for_heartbeat(
     valence: &Valence,
 ) -> Result<Vec<AgentDirective>> {
     let now = Utc::now();
-    let mut rows: Vec<PionAgentHandoffDirective> = PionAgentHandoffDirective::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Agent Handoff Directive** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
+    let mut rows: Vec<PionAgentHandoffDirective> = PionAgentHandoffDirective::query(valence, valence::use_!("When an agent **sends a heartbeat**, we **list the handoff directives** and keep the pending or delivered ones addressed to that node. Those are sent back to the agent in the heartbeat response, and other nodes' directives are discarded."))
         .await?
         .into_iter()
         .filter(|r| r.target_node_id().trim() == report.node_id.trim())
@@ -297,7 +297,7 @@ pub async fn collect_handoff_directives_for_heartbeat(
                 HandoffDirectiveContext::from_node(&report.node_id)
                     .warn_deliver_failed(&id, &e.to_string());
             }
-            PionAgentHandoffDirective::get(id.as_str(), valence, valence::use_!("In **Pion control plane**, we **load Pion Agent Handoff Directive** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+            PionAgentHandoffDirective::get(id.as_str(), valence, valence::use_!("After a pending **handoff directive** is marked delivered during an agent's heartbeat, we **reload it** to get the stored delivery state. The directive is then sent to that agent in the heartbeat response."))
                 .await
                 .map_err(|e| anyhow::anyhow!(e))?
                 .unwrap_or(row)

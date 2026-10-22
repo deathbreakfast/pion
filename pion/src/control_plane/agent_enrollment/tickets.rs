@@ -87,7 +87,7 @@ pub async fn create_host_enrollment(
         None,
     )
     .context("build host enrollment row")?;
-    PionAgentHostEnrollment::upsert(&enrollment_id, row, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Agent Host Enrollment** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields."))
+    PionAgentHostEnrollment::upsert(&enrollment_id, row, valence, valence::use_!("When an operator **creates a host enrollment ticket** during setup, we **save it as pending**, with a hash of its token, the host it is expected from and when it expires. The raw token is not stored. The control plane checks the ticket when a new agent first reports in."))
         .await
         .with_context(|| format!("upsert host enrollment {enrollment_id}"))?;
     tracing::info!(
@@ -203,7 +203,7 @@ pub async fn list_enrollments_for_bootstrap_session(
     if q.is_empty() {
         return Ok(Vec::new());
     }
-    let mut rows = PionAgentHostEnrollment::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Agent Host Enrollment** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
+    let mut rows = PionAgentHostEnrollment::query(valence, valence::use_!("When a setup session asks for its **host enrollment tickets**, we **list every enrollment** and keep the ones recorded under that session, oldest first. The setup flow uses them to report the status of each ticket (pending, claimed or revoked)."))
         .await
         .context("query host enrollments for session list")?;
     rows.retain(|r| session_matches(r.setup_wizard_session_id(), q));
