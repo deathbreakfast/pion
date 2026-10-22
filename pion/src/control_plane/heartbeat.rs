@@ -31,7 +31,7 @@ use super::contracts::map_health_to_observed_enum;
 use super::{derive_observed_health, map_health_to_node_status, NodeHeartbeatReport};
 
 async fn ensure_cell_exists(cell_id: &str, valence: &Valence) -> Result<()> {
-    if PionControlPlaneCell::get(cell_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Control Plane Cell** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    if PionControlPlaneCell::get(cell_id, valence, valence::use_!("On an agent **heartbeat**, we **check that the cell the agent reports** (its group of hosts) **already exists**. If not, the control plane creates it, so the node can be filed under it."))
         .await
         .with_context(|| format!("load cell {cell_id} for heartbeat ingest"))?
         .is_some()
@@ -55,7 +55,7 @@ async fn ensure_cell_exists(cell_id: &str, valence: &Valence) -> Result<()> {
         now,
     )
     .context("build control plane cell row")?;
-    PionControlPlaneCell::upsert(cell_id, record, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Control Plane Cell** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields."))
+    PionControlPlaneCell::upsert(cell_id, record, valence, valence::use_!("On an agent **heartbeat** that names a cell the control plane has not seen, we **create that cell**, marked as seeded from the heartbeat. The node reported in the heartbeat can then be filed under it."))
         .await
         .with_context(|| format!("upsert control plane cell {cell_id}"))?;
     Ok(())
@@ -109,7 +109,7 @@ async fn upsert_node_record(
         now,
     )
     .context("build control plane node row")?;
-    PionControlPlaneNode::upsert(&report.node_id, node, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Control Plane Node** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields."))
+    PionControlPlaneNode::upsert(&report.node_id, node, valence, valence::use_!("The first time an agent's **heartbeat** names a node the control plane has not seen, we **create the node inventory row** with its cell, hostname, status, capabilities and labels. Operators and placement use this inventory to find hosts."))
         .await
         .with_context(|| format!("upsert control plane node {}", report.node_id))?;
     Ok(())
@@ -158,7 +158,7 @@ async fn upsert_node_reachability(
                     now,
                 )
                 .context("build node reachability row")?;
-                PionNodeReachability::upsert(node_id, row, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Node Reachability** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields."))
+                PionNodeReachability::upsert(node_id, row, valence, valence::use_!("On an agent **heartbeat**, we **save the peer IP address the control plane saw** the request come from as that node's reachability row. The control plane uses the address to reconnect to the host later."))
                     .await
                     .with_context(|| format!("upsert reachability row for node {node_id}"))?;
             }
@@ -184,7 +184,7 @@ async fn upsert_observed_status(report: &NodeHeartbeatReport, valence: &Valence)
         report.observed_at,
     )
     .context("build observed status row")?;
-    PionControlPlaneObservedStatus::upsert(&observed_id, observed, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Control Plane Observed Status** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields."))
+    PionControlPlaneObservedStatus::upsert(&observed_id, observed, valence, valence::use_!("On an agent **heartbeat**, we **save the health report** the agent sent (overall health plus the full report) as the node's latest observed status. Runtime health and container snapshots for operators are built from these."))
         .await
         .with_context(|| format!("upsert observed status {observed_id}"))?;
     Ok(())
@@ -216,7 +216,7 @@ pub async fn ingest_node_heartbeat(
     peer_ip: Option<&str>,
     valence: &Valence,
 ) -> Result<parton::HeartbeatResponse> {
-    let node_exists = PionControlPlaneNode::get(&report.node_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Control Plane Node** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let node_exists = PionControlPlaneNode::get(&report.node_id, valence, valence::use_!("At the start of an agent **heartbeat**, we **load the node it names** to find out whether it is already known. A first-seen node goes through enrollment checks and gets an inventory row; a known one is refreshed."))
         .await
         .with_context(|| {
             format!(

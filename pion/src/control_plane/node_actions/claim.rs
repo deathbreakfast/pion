@@ -27,7 +27,7 @@ async fn prior_sequences_terminal(
     if correlation_key.is_empty() || sequence <= 0 {
         return Ok(true);
     }
-    let rows = PionNodeActionCommand::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Node Action Command** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
+    let rows = PionNodeActionCommand::query(valence, valence::use_!("Before an agent **claims a step of a multi-step deploy**, we **list the node action commands that share its correlation key** for that node. The agent is allowed to claim only when every earlier step in the sequence has finished."))
         .where_correlation_key(StringPredicate::Equals(correlation_key.to_string()))
         .where_node_id(StringPredicate::Equals(node_id.to_string()))
         .await
@@ -168,7 +168,7 @@ async fn claim_pending_node_action_locked(
     valence: &Valence,
 ) -> Result<Option<ClaimedNodeAction>> {
     let lease_secs = lease_duration_secs.max(1);
-    let mut pending: Vec<_> = PionNodeActionCommand::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Node Action Command** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
+    let mut pending: Vec<_> = PionNodeActionCommand::query(valence, valence::use_!("When an agent **asks for work**, we **list the pending node action commands queued for that node**, in sequence order. The first one whose earlier steps have finished is claimed by this agent, and commands for other nodes are not read."))
         .where_node_id(StringPredicate::Equals(node_id.to_string()))
         .where_status(StringPredicate::Equals(
             PionNodeActionCommandStatus::Pending.as_str().to_string(),
