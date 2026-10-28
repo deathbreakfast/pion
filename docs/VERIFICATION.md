@@ -30,6 +30,14 @@ Required PR jobs in `ci.yml` and the local commands that match them:
 | `coverage` | `cargo llvm-cov -p pion --features runtime --fail-under-lines 50 --summary-only` |
 | `bench-smoke` | `cargo check -p pion-bench` |
 
+## Parity runs
+
+| Date | Branch | Content SHA | Jobs run |
+|------|--------|-------------|----------|
+| 2026-10-28 | `mcp-server` (ship) | `821b34a` | Full CI parity via `tachyon-ci`: fmt, check, clippy, test, docs, deny, audit, coverage, bench-smoke. `cargo deny check` and `cargo audit` clear after the tokio/rustls-webpki/webpki-roots advisory bump and the UF git-dep pin refresh to uf-dev `main`. Ship gate (`uf-ship-gate`) clean on the same SHA. |
+
+The SHA above is the branch content under test; this evidence row adds only docs on top of it.
+
 ## Commands
 
 Run these in order; each must pass with no warnings (same block as PR CI):
