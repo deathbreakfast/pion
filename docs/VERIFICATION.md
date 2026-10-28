@@ -32,11 +32,11 @@ Required PR jobs in `ci.yml` and the local commands that match them:
 
 ## Parity runs
 
-| Date | Branch | Content SHA | Jobs run |
-|------|--------|-------------|----------|
-| 2026-10-28 | `mcp-server` (ship) | `821b34a` | Full CI parity via `tachyon-ci`: fmt, check, clippy, test, docs, deny, audit, coverage, bench-smoke. `cargo deny check` and `cargo audit` clear after the tokio/rustls-webpki/webpki-roots advisory bump and the UF git-dep pin refresh to uf-dev `main`. Ship gate (`uf-ship-gate`) clean on the same SHA. |
+| Date | Branch | Content SHA | Ran | Still pending |
+|------|--------|-------------|-----|---------------|
+| 2026-10-28 | `mcp-server` (ship) | `821b34a` | `cargo check -p pion --features runtime` and `cargo check -p pion-server` (clean, `-D warnings`), `cargo deny check`, and `cargo audit` — all green after the tokio/rustls-webpki/webpki-roots advisory bump and the UF git-dep pin refresh to uf-dev `main`. | Full `tachyon-ci` parity (fmt, check, clippy, test, docs, deny, audit, coverage, bench-smoke) and `uf-ship-gate` have not run yet: the parity job hit the 60 GB free-disk preflight on the heavy-job box and exited before building. To be re-run and recorded here once the box has the headroom. |
 
-The SHA above is the branch content under test; this evidence row adds only docs on top of it.
+The SHA is the branch content under test; this evidence row adds only docs on top of it.
 
 ## Commands
 
