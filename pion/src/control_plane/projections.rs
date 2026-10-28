@@ -242,7 +242,7 @@ pub async fn list_agent_nodes_for_cell(
     cell_id: &str,
 ) -> Result<Vec<(String, String)>> {
     let target = cell_id.trim();
-    let nodes = PionControlPlaneNode::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Control Plane Node** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors.")).await?;
+    let nodes = PionControlPlaneNode::query(valence, valence::use_!("When the control plane **lists the agent hosts of a cell**, we **list the nodes** and keep the agent-connected ones in that cell. It returns each node's id and hostname, sorted for stable output.")).await?;
     let mut out: Vec<(String, String)> = nodes
         .into_iter()
         .filter(|n| {
@@ -269,8 +269,8 @@ pub async fn list_agent_nodes_for_cell(
 pub async fn list_runtime_container_snapshots(
     valence: &Valence,
 ) -> Result<Vec<RuntimeContainerSnapshot>> {
-    let nodes = PionControlPlaneNode::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Control Plane Node** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors.")).await?;
-    let observed = PionControlPlaneObservedStatus::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Control Plane Observed Status** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors.")).await?;
+    let nodes = PionControlPlaneNode::query(valence, valence::use_!("When the control plane builds **runtime container snapshots**, we **list the nodes** to give each snapshot its hostname and cell. The snapshots are returned to the caller, one per node.")).await?;
+    let observed = PionControlPlaneObservedStatus::query(valence, valence::use_!("When the control plane builds **runtime container snapshots**, we **list the observed statuses** and take the newest one for each node. Its container list becomes that node's snapshot, which the caller receives.")).await?;
     let now = Utc::now();
 
     let mut newest_by_node: HashMap<String, PionControlPlaneObservedStatus> = HashMap::new();
@@ -324,7 +324,7 @@ pub async fn list_runtime_container_snapshots(
 pub async fn list_runtime_health_snapshots(
     valence: &Valence,
 ) -> Result<Vec<RuntimeHealthSnapshot>> {
-    let observed = PionControlPlaneObservedStatus::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Control Plane Observed Status** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors.")).await?;
+    let observed = PionControlPlaneObservedStatus::query(valence, valence::use_!("When the control plane builds **runtime health snapshots**, we **list the observed statuses** and return them newest first with each one's health and age. The caller receives them as the fleet health view.")).await?;
     let now = Utc::now();
     let mut rows = observed
         .into_iter()

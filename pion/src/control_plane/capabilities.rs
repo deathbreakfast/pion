@@ -81,7 +81,7 @@ pub(crate) async fn ensure_default_node_action_capabilities(
     let now = Utc::now();
     for action in all_container_action_kinds() {
         let id = capability_row_id(node_id, action);
-        if PionControlPlaneNodeActionCapability::get(&id, valence, valence::use_!("In **Pion control plane**, we **load Pion Control Plane Node Action Capability** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+        if PionControlPlaneNodeActionCapability::get(&id, valence, valence::use_!("On an agent **heartbeat**, we **check whether a node already has a row for each container action** (start, stop, deploy and so on). Only the missing rows are created, so an operator's earlier on/off choice is never overwritten."))
             .await
             .with_context(|| format!("load default capability row {id}"))?
             .is_some()
@@ -99,7 +99,7 @@ pub(crate) async fn ensure_default_node_action_capabilities(
             now,
         )
         .context("build default capability row")?;
-        PionControlPlaneNodeActionCapability::upsert(&id, record, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Control Plane Node Action Capability** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields."))
+        PionControlPlaneNodeActionCapability::upsert(&id, record, valence, valence::use_!("On an agent **heartbeat**, for each container action a node has no row for, we **create one switched off by default**. An operator must enable an action for a node before the control plane will queue it."))
             .await
             .with_context(|| format!("upsert default capability row {id}"))?;
     }
@@ -122,7 +122,7 @@ pub async fn upsert_node_action_capability(
 ) -> Result<()> {
     let now = Utc::now();
     let id = capability_row_id(node_id, action);
-    let created_at = if let Some(existing) = PionControlPlaneNodeActionCapability::get(&id, valence, valence::use_!("In **Pion control plane**, we **load Pion Control Plane Node Action Capability** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let created_at = if let Some(existing) = PionControlPlaneNodeActionCapability::get(&id, valence, valence::use_!("When an operator **turns a container action on or off** for a node, we **load that node's existing row** to keep its original creation time. The control plane then rewrites the row with the new setting."))
         .await
         .with_context(|| format!("load capability row {id} for upsert"))?
     {
@@ -141,7 +141,7 @@ pub async fn upsert_node_action_capability(
         now,
     )
     .context("build capability row")?;
-    PionControlPlaneNodeActionCapability::upsert(&id, record, valence, valence::use_!("When **Pion control plane** needs to persist work, we **save Pion Control Plane Node Action Capability** so the next step in that feature can continue with the latest values. People and services allowed for **Pion control plane** use this data for that workflow—not as a general export of unrelated personal fields."))
+    PionControlPlaneNodeActionCapability::upsert(&id, record, valence, valence::use_!("When an operator **turns a container action on or off** for a node, we **save the setting** with who changed it, why and when. The control plane checks it before it queues that action on the node, and the change is written to the security log."))
         .await
         .with_context(|| format!("upsert capability row {id}"))?;
     tracing::info!(
@@ -164,7 +164,7 @@ pub async fn upsert_node_action_capability(
 pub async fn list_node_action_capability_map(
     valence: &Valence,
 ) -> Result<HashMap<String, HashMap<String, bool>>> {
-    let rows = PionControlPlaneNodeActionCapability::query(valence, valence::use_!("In **Pion control plane**, we **list Pion Control Plane Node Action Capability** so the product can show or process the matching set for this workflow. Callers allowed for **Pion control plane** use the list; it is not a public dump of every field to anonymous visitors."))
+    let rows = PionControlPlaneNodeActionCapability::query(valence, valence::use_!("Before the control plane **queues or deploys a container action**, we **list every node's action settings** and build a lookup of which actions are on for which node. The lookup is used only to allow or refuse the action and is not shown."))
         .await
         .context("query node action capability rows")?;
     let mut map: HashMap<String, HashMap<String, bool>> = HashMap::new();

@@ -33,7 +33,7 @@ async fn load_pending_enrollment_row(
     valence: &Valence,
     enrollment_id: &str,
 ) -> Result<PionAgentHostEnrollment, EnrollmentError> {
-    let row = PionAgentHostEnrollment::get(enrollment_id, valence, valence::use_!("In **Pion control plane**, we **load Pion Agent Host Enrollment** so the application can decide what to do next in this workflow. The result is used by **Pion control plane** logic—not necessarily displayed on a page unless that feature’s UI shows it."))
+    let row = PionAgentHostEnrollment::get(enrollment_id, valence, valence::use_!("When a **new agent presents an enrollment token** on its first heartbeat, we **load the enrollment ticket it names** to check it is still pending, unexpired and issued for this host. The control plane uses the answer to accept or reject the agent; the ticket is not shown to anyone."))
         .await
         .with_context(|| format!("load enrollment {enrollment_id} for verify"))
         .map_err(EnrollmentError::Internal)?
