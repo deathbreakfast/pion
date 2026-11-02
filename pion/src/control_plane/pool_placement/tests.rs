@@ -486,7 +486,12 @@ async fn create_pool_of_type(v: &Valence, pool_type: &str) -> anyhow::Result<()>
 #[tokio::test]
 async fn chronon_worker_pool_type_is_accepted() -> anyhow::Result<()> {
     let v = test_valence("pool_type_chronon_worker").await;
-    create_pool_of_type(&v, "chronon-worker").await
+    create_pool_of_type(&v, "chronon-worker").await?;
+    let stored = PionControlPlaneVirtualPool::get(POOL, &v, valence::use_!("**Test:** the pool-placement suite **reads the pool back** to prove it was stored with the chronon-worker type. CI and developers running the suite only."))
+        .await?
+        .expect("pool was stored");
+    assert_eq!(stored.pool_type(), "chronon-worker");
+    Ok(())
 }
 
 #[tokio::test]
