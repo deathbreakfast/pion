@@ -5,7 +5,7 @@ valence_schema! {
     PionAgentHostEnrollment {
         repository: "https://github.com/unified-field-dev/pion",
         table: "pion_agent_host_enrollment",
-        version: "0.1.1",
+        version: "0.2.0",
         database: crate::storage::GLUON_DEFAULT_STORAGE,
         description: "One-time enrollment ticket for joining an agent host to the control plane",
 
@@ -26,7 +26,7 @@ valence_schema! {
                 required: true,
             },
             claimed_node_id: { r#type: FieldType::String },
-            setup_wizard_session_id: { r#type: FieldType::String },
+            bootstrap_session_id: { r#type: FieldType::String },
             created_at: { r#type: FieldType::DateTime, required: true },
             expires_at: { r#type: FieldType::DateTime, required: true },
             claimed_at: { r#type: FieldType::DateTime },

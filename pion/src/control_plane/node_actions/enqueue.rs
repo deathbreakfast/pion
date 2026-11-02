@@ -258,6 +258,6 @@ pub async fn enqueue_node_action_idempotent(
         "node action enqueued"
     );
     crate::bootstrap_notify::notify_if_wizard_run(valence, &corr).await;
-    crate::maybe_publish_setup_wizard_tracked_photon(&corr, "pending").await;
+    crate::maybe_publish_bootstrap_tracked_photon(&corr, "pending").await;
     Ok(cmd_id)
 }

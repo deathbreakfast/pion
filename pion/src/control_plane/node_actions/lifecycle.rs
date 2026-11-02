@@ -52,7 +52,7 @@ async fn reconcile_stale_pending_node_action(
         .is_ok()
     {
         crate::bootstrap_notify::notify_if_wizard_run(valence, ck).await;
-        crate::maybe_publish_setup_wizard_tracked_photon(ck, "failed").await;
+        crate::maybe_publish_bootstrap_tracked_photon(ck, "failed").await;
     }
     Ok(())
 }
@@ -75,7 +75,7 @@ async fn reconcile_expired_lease_node_action(
             .is_ok()
         {
             crate::bootstrap_notify::notify_if_wizard_run(valence, ck).await;
-            crate::maybe_publish_setup_wizard_tracked_photon(ck, "failed").await;
+            crate::maybe_publish_bootstrap_tracked_photon(ck, "failed").await;
         }
     } else if cmd
         .get_mutable(valence, valence::use_!(r"During **node action reconcile**, when a running command's lease expires with attempts left, we **return it to pending** so another agent can claim it. Control-plane retry and operators use that status."))
@@ -87,7 +87,7 @@ async fn reconcile_expired_lease_node_action(
         .is_ok()
     {
         crate::bootstrap_notify::notify_if_wizard_run(valence, ck).await;
-        crate::maybe_publish_setup_wizard_tracked_photon(ck, "lease_expired_retry").await;
+        crate::maybe_publish_bootstrap_tracked_photon(ck, "lease_expired_retry").await;
     }
     Ok(())
 }
@@ -412,6 +412,6 @@ pub async fn extend_node_action_lease(
         ctx.log_lease_extend(&format!("lease_extended until={}", new_end.to_rfc3339()));
     }
     crate::bootstrap_notify::notify_if_wizard_run(valence, &ck).await;
-    crate::maybe_publish_setup_wizard_tracked_photon(&ck, "lease_extended").await;
+    crate::maybe_publish_bootstrap_tracked_photon(&ck, "lease_extended").await;
     Ok(())
 }
