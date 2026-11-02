@@ -34,7 +34,7 @@ async fn enrollment_created_for_session_is_listed_for_that_session() -> anyhow::
     assert_eq!(rows.len(), 1, "only the session-1 ticket is listed");
     let row_id = valence::extract_id_from_record(rows[0].id().expect("row id"))?;
     assert_eq!(row_id, enrollment_id);
-    assert_eq!(rows[0].setup_wizard_session_id(), "boot-session-1");
+    assert_eq!(rows[0].bootstrap_session_id(), "boot-session-1");
 
     // Surrounding whitespace on the query is ignored.
     let padded = list_enrollments_for_bootstrap_session(&v, "  boot-session-1 ").await?;

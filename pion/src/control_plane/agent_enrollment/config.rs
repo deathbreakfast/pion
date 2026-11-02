@@ -2,13 +2,9 @@
 
 /// Default bootstrap session record id (`"default"`).
 ///
-/// Prefer [`DEFAULT_BOOTSTRAP_SESSION_RECORD_ID`]. Empty `setup_wizard_session_id` rows (a stored
-/// field name kept for compatibility) still match this id so enrollment lists keep working after
-/// upgrades.
-pub const DEFAULT_SETUP_WIZARD_SESSION_RECORD_ID: &str = "default";
-
-/// Neutral alias for [`DEFAULT_SETUP_WIZARD_SESSION_RECORD_ID`] (bootstrap session id).
-pub const DEFAULT_BOOTSTRAP_SESSION_RECORD_ID: &str = DEFAULT_SETUP_WIZARD_SESSION_RECORD_ID;
+/// Rows with an empty `bootstrap_session_id` also match this id so enrollment lists keep working
+/// for enrollments stored before the field was set.
+pub const DEFAULT_BOOTSTRAP_SESSION_RECORD_ID: &str = "default";
 
 /// True when the operator has explicitly opted into running without a configured shared token.
 ///

@@ -59,7 +59,7 @@ async fn finish_failed_node_action_report(
                 .with_attempt(attempt);
             ctx.log_result("retry", "result retry_pending");
         }
-        crate::maybe_publish_setup_wizard_tracked_photon(correlation_key, "retry_pending").await;
+        crate::maybe_publish_bootstrap_tracked_photon(correlation_key, "retry_pending").await;
     } else {
         cmd.get_mutable(valence, valence::use_!(r"When an agent **reports failure** at max attempts, we **mark the command failed** with the error text. Operators and any registered bootstrap notifier see the terminal failure."))
             .set_status(PionNodeActionCommandStatus::Failed)?
@@ -77,7 +77,7 @@ async fn finish_failed_node_action_report(
                 &terminal_failure_message(&clip(last, 512), stderr_len),
             );
         }
-        crate::maybe_publish_setup_wizard_tracked_photon(correlation_key, "failed").await;
+        crate::maybe_publish_bootstrap_tracked_photon(correlation_key, "failed").await;
     }
 
     crate::bootstrap_notify::notify_if_wizard_run(valence, correlation_key).await;
@@ -214,7 +214,7 @@ async fn report_node_action_result_inner(
             ctx.log_result("success", "result success");
         }
         crate::bootstrap_notify::notify_if_wizard_run(valence, &correlation_key).await;
-        crate::maybe_publish_setup_wizard_tracked_photon(&correlation_key, "succeeded").await;
+        crate::maybe_publish_bootstrap_tracked_photon(&correlation_key, "succeeded").await;
         return Ok(());
     }
 

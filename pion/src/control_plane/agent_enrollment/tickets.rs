@@ -7,7 +7,7 @@ use valence::{Model, Valence};
 
 use crate::generated::{PionAgentHostEnrollment, PionAgentHostEnrollmentStatus};
 
-use super::config::{normalize_agent_host_hint, DEFAULT_SETUP_WIZARD_SESSION_RECORD_ID};
+use super::config::{normalize_agent_host_hint, DEFAULT_BOOTSTRAP_SESSION_RECORD_ID};
 use super::error::EnrollmentError;
 use super::token::{build_full_token, hex_sha256};
 
@@ -21,13 +21,13 @@ fn unset_dt() -> chrono::DateTime<Utc> {
 /// Persists a [`crate::generated::PionAgentHostEnrollment`] row and returns `(enrollment_id, wire_token)`.
 /// `bootstrap_session_id` groups the tickets of one bootstrap run so
 /// [`list_enrollments_for_bootstrap_session`] can find them. It is stored in the row's
-/// `setup_wizard_session_id` column.
+/// `bootstrap_session_id` column.
 /// The wire token (`ghe.<id>.<secret>`) is shown once to the operator; the agent presents it on
 /// heartbeat until the row transitions to **claimed**.
 ///
 /// # Side effects
 ///
-/// Publishes [`crate::publish_setup_wizard_host_enrollment_updated`] (Photon) so enrollment UIs can
+/// Publishes [`crate::publish_bootstrap_host_enrollment_updated`] (Photon) so enrollment UIs can
 /// refresh.
 ///
 /// # Errors
@@ -96,7 +96,7 @@ pub async fn create_host_enrollment(
         expected_agent_host = %normalize_agent_host_hint(&expected_agent_host),
         "host enrollment ticket created"
     );
-    crate::publish_setup_wizard_host_enrollment_updated(
+    crate::publish_bootstrap_host_enrollment_updated(
         session_id_for_photon,
         enrollment_id.clone(),
         "created",
@@ -149,7 +149,7 @@ pub async fn revoke_host_enrollment(valence: &Valence, enrollment_id: &str) -> R
     if *row.status() != PionAgentHostEnrollmentStatus::Pending {
         return Ok(());
     }
-    let session_id_for_photon = row.setup_wizard_session_id().clone();
+    let session_id_for_photon = row.bootstrap_session_id().clone();
     let enrollment_id_owned = enrollment_id.to_string();
     let now = Utc::now();
     row.get_mutable(valence, valence::use_!(r"When an operator **revokes** a pending host enrollment ticket, we **mark that enrollment revoked** so its wire token can no longer be claimed. Operators and enrollment consoles see the revoked status on refresh."))
@@ -163,7 +163,7 @@ pub async fn revoke_host_enrollment(valence: &Valence, enrollment_id: &str) -> R
         enrollment_id = %enrollment_id_owned,
         "enrollment ticket revoked"
     );
-    crate::publish_setup_wizard_host_enrollment_updated(
+    crate::publish_bootstrap_host_enrollment_updated(
         session_id_for_photon,
         enrollment_id_owned,
         "revoked",
@@ -174,17 +174,17 @@ pub async fn revoke_host_enrollment(valence: &Valence, enrollment_id: &str) -> R
 
 /// List enrollments created for a bootstrap session (pending, claimed and revoked).
 ///
-/// Prefer [`list_enrollments_for_bootstrap_session`] in new code. The Valence field remains
-/// `setup_wizard_session_id` until a schema migration renames it.
+/// Prefer [`list_enrollments_for_bootstrap_session`] in new code. The Valence field is
+/// `bootstrap_session_id`.
 ///
 /// # Errors
 ///
 /// Propagates Valence query failures.
 pub async fn list_enrollments_for_session(
     valence: &Valence,
-    setup_wizard_session_id: &str,
+    bootstrap_session_id: &str,
 ) -> Result<Vec<PionAgentHostEnrollment>> {
-    list_enrollments_for_bootstrap_session(valence, setup_wizard_session_id).await
+    list_enrollments_for_bootstrap_session(valence, bootstrap_session_id).await
 }
 
 /// List enrollments created for a bootstrap session (pending, claimed and revoked), oldest first.
@@ -206,7 +206,7 @@ pub async fn list_enrollments_for_bootstrap_session(
     let mut rows = PionAgentHostEnrollment::query(valence, valence::use_!("When a setup session asks for its **host enrollment tickets**, we **list every enrollment** and keep the ones recorded under that session, oldest first. The setup flow uses them to report the status of each ticket (pending, claimed or revoked)."))
         .await
         .context("query host enrollments for session list")?;
-    rows.retain(|r| session_matches(r.setup_wizard_session_id(), q));
+    rows.retain(|r| session_matches(r.bootstrap_session_id(), q));
     rows.sort_by_key(|r| *r.created_at());
     Ok(rows)
 }
@@ -214,7 +214,7 @@ pub async fn list_enrollments_for_bootstrap_session(
 /// Whether a row's stored session id belongs to the (trimmed, non-blank) query.
 fn session_matches(row_sid: &str, query: &str) -> bool {
     let row_sid = row_sid.trim();
-    row_sid == query || (query == DEFAULT_SETUP_WIZARD_SESSION_RECORD_ID && row_sid.is_empty())
+    row_sid == query || (query == DEFAULT_BOOTSTRAP_SESSION_RECORD_ID && row_sid.is_empty())
 }
 
 #[cfg(test)]

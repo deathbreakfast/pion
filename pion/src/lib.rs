@@ -548,7 +548,7 @@ mod photon_host_enrollment_event;
 pub mod registry_storage_notify;
 #[cfg(feature = "runtime")]
 pub use photon_container_observation_event::PionContainerStateChanged;
-mod photon_setup_wizard_node_action_events;
+mod photon_bootstrap_node_action_events;
 
 #[cfg(feature = "runtime")]
 pub mod runtime;
@@ -558,8 +558,8 @@ pub mod scripts;
 #[cfg(feature = "runtime")]
 pub use control_plane::*;
 #[cfg(feature = "runtime")]
-pub use photon_host_enrollment_event::publish_setup_wizard_host_enrollment_updated;
+pub use photon_bootstrap_node_action_events::maybe_publish_bootstrap_tracked_photon;
 #[cfg(feature = "runtime")]
-pub use photon_setup_wizard_node_action_events::maybe_publish_setup_wizard_tracked_photon;
+pub use photon_host_enrollment_event::publish_bootstrap_host_enrollment_updated;
 #[cfg(feature = "runtime")]
 pub use valence_bootstrap::{bootstrap_valence, bootstrap_valence_from_env, StorageProfile};

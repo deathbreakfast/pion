@@ -198,7 +198,7 @@ pub async fn mark_enrollment_claimed(
     if *row.status() != PionAgentHostEnrollmentStatus::Pending {
         return Ok(());
     }
-    let session_id_for_photon = row.setup_wizard_session_id().clone();
+    let session_id_for_photon = row.bootstrap_session_id().clone();
     let now = Utc::now();
     row.get_mutable(valence, valence::use_!(r"After a first-seen agent **claims** a host enrollment ticket on heartbeat, we **mark the enrollment claimed** and pin the node id so the ticket cannot be reused. Control-plane ingest and enrollment consoles use that status."))
         .set_status(PionAgentHostEnrollmentStatus::Claimed)?
@@ -213,7 +213,7 @@ pub async fn mark_enrollment_claimed(
         claimed_node_id = %claimed_node_id,
         "enrollment claimed"
     );
-    crate::publish_setup_wizard_host_enrollment_updated(
+    crate::publish_bootstrap_host_enrollment_updated(
         session_id_for_photon,
         enrollment_id,
         "claimed",
