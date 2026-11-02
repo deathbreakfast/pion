@@ -5,7 +5,7 @@ valence_schema! {
     PionControlPlaneVirtualPool {
         repository: "https://github.com/unified-field-dev/pion",
         table: "pion_control_plane_virtual_pool",
-        version: "0.1.2",
+        version: "0.1.3",
         database: crate::storage::CONTROL_PLANE_DEFAULT_STORAGE,
         description: "Abstract pool grouping that spans cells/providers",
 
@@ -23,7 +23,7 @@ valence_schema! {
                 r#type: FieldType::String,
                 required: true,
                 default: "general",
-                validations: ["enum:general,photon-worker,boson-worker"],
+                validations: ["enum:general,photon-worker,boson-worker,chronon-worker"],
             },
             description: { r#type: FieldType::String },
             selector_json: { r#type: FieldType::Json, required: true },
