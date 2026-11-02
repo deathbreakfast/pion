@@ -465,3 +465,37 @@ async fn pinned_node_target_is_refused_when_it_misses_the_floor() -> anyhow::Res
     assert_eq!(resolved, SMALL_X86.node_id);
     Ok(())
 }
+
+/// Builds and stores a pool of the given type, so the type enum is checked wherever Valence checks it.
+async fn create_pool_of_type(v: &Valence, pool_type: &str) -> anyhow::Result<()> {
+    let now = Utc::now();
+    let pool = PionControlPlaneVirtualPool::new(
+        POOL.to_string(),
+        pool_type.to_string(),
+        "Typed pool".to_string(),
+        serde_json::json!({}),
+        serde_json::json!({}),
+        serde_json::json!({}),
+        now,
+        now,
+    )?;
+    PionControlPlaneVirtualPool::upsert(POOL, pool, v, valence::use_!("**Test:** the pool-placement suite **creates a pool of a given type** to prove which pool types are accepted. CI and developers running the suite only.")).await?;
+    Ok(())
+}
+
+#[tokio::test]
+async fn chronon_worker_pool_type_is_accepted() -> anyhow::Result<()> {
+    let v = test_valence("pool_type_chronon_worker").await;
+    create_pool_of_type(&v, "chronon-worker").await?;
+    let stored = PionControlPlaneVirtualPool::get(POOL, &v, valence::use_!("**Test:** the pool-placement suite **reads the pool back** to prove it was stored with the chronon-worker type. CI and developers running the suite only."))
+        .await?
+        .expect("pool was stored");
+    assert_eq!(stored.pool_type(), "chronon-worker");
+    Ok(())
+}
+
+#[tokio::test]
+async fn unknown_pool_type_is_rejected() {
+    let v = test_valence("pool_type_unknown").await;
+    assert!(create_pool_of_type(&v, "bogus-worker").await.is_err());
+}
