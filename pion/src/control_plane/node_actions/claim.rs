@@ -68,7 +68,7 @@ async fn resolve_claim_payload_or_mark_failed(
             .await
             .with_context(|| format!("commit secret-resolver-missing failure for command {id}"))?;
         let fail_ck = row.correlation_key().clone();
-        crate::maybe_publish_setup_wizard_tracked_photon(&fail_ck, "failed").await;
+        crate::maybe_publish_bootstrap_tracked_photon(&fail_ck, "failed").await;
         return Ok(false);
     };
     if let Err(e) = resolve_secrets_in_json(valence, res.as_ref(), out_payload).await {
@@ -81,7 +81,7 @@ async fn resolve_claim_payload_or_mark_failed(
             .await
             .with_context(|| format!("commit secret resolution failure for command {id}"))?;
         let fail_ck = row.correlation_key().clone();
-        crate::maybe_publish_setup_wizard_tracked_photon(&fail_ck, "failed").await;
+        crate::maybe_publish_bootstrap_tracked_photon(&fail_ck, "failed").await;
         return Ok(false);
     }
     Ok(true)
@@ -305,7 +305,7 @@ async fn try_claim_candidate(
     );
     let ck = row.correlation_key().clone();
     crate::bootstrap_notify::notify_if_wizard_run(valence, &ck).await;
-    crate::maybe_publish_setup_wizard_tracked_photon(&ck, "running").await;
+    crate::maybe_publish_bootstrap_tracked_photon(&ck, "running").await;
     Ok(Some(ClaimedNodeAction {
         command_id: id.to_string(),
         action_kind: row.action_kind().clone(),

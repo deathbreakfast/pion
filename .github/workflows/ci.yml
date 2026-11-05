@@ -98,6 +98,23 @@ jobs:
           cargo install cargo-audit --locked
           cargo audit
 
+  # Fail on any use_! purpose with a migration template or hedge phrase.
+  # The tool exits 0 even with hits, so the gate reads its summary line.
+  purpose-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master (pin); toolchain via input
+        with:
+          toolchain: nightly-2026-09-30
+      - name: Lint use_! purposes
+        run: |
+          set -o pipefail
+          lint_root="$(mktemp -d)"
+          cargo install --locked --root "$lint_root" --git https://github.com/unified-field-dev/valence --branch main uf-valence-data-use-scan --bin valence-purpose-lint
+          "$lint_root/bin/valence-purpose-lint" --sites . | tee purpose-lint.txt
+          tail -n1 purpose-lint.txt | grep -q '^0 template/hedge hits'
+
   # Coverage floor (≥50% lines). Ratchet toward 90%; fail PRs that regress.
   coverage:
     runs-on: ubuntu-latest

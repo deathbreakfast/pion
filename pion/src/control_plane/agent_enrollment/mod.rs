@@ -8,7 +8,6 @@ mod verify;
 
 pub use config::{
     enrollment_strict_new_nodes, normalize_agent_host_hint, DEFAULT_BOOTSTRAP_SESSION_RECORD_ID,
-    DEFAULT_SETUP_WIZARD_SESSION_RECORD_ID,
 };
 pub use error::EnrollmentError;
 pub use tickets::{

@@ -35,7 +35,6 @@ pub use agent_enrollment::{
     create_host_enrollment, enrollment_strict_new_nodes, list_enrollments_for_bootstrap_session,
     list_enrollments_for_session, normalize_agent_host_hint, revoke_host_enrollment,
     set_host_enrollment_pubkey, EnrollmentError, DEFAULT_BOOTSTRAP_SESSION_RECORD_ID,
-    DEFAULT_SETUP_WIZARD_SESSION_RECORD_ID,
 };
 
 pub use parton::{
