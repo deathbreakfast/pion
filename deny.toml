@@ -4,7 +4,10 @@
 [advisories]
 version = 2
 yanked = "warn"
-ignore = []
+ignore = [
+    { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained, no fixed release; temporary until the stack moves off chrono (security:RUSTSEC-2026-0543)" },
+    { id = "RUSTSEC-2026-0459", reason = "libsqlite3-sys via sqlx, no fixed release yet (security:RUSTSEC-2026-0459)" },
+]
 
 [licenses]
 version = 2
