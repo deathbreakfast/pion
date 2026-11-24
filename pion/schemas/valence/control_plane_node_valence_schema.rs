@@ -5,14 +5,14 @@ valence_schema! {
     PionControlPlaneNode {
         repository: "https://github.com/unified-field-dev/pion",
         table: "pion_control_plane_node",
-        version: "0.1.0",
+        version: "0.1.1",
         database: crate::storage::CONTROL_PLANE_DEFAULT_STORAGE,
         description: "Node inventory tracked per control-plane cell",
 
         policies: {
             read:   { allow: [AUTHENTICATED] },
             create: { allow: [SYSTEM_ONLY] },
-            update: { allow: [SYSTEM_ONLY] },
+            update: { always_allow: [SYSTEM_ONLY], allow: [crate::privacy_policies::PION_OPERATE_CLOUD_RESOURCES] },
             delete: { allow: [SYSTEM_ONLY] },
         },
 

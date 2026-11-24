@@ -17,6 +17,7 @@
 //! | `deploy` / `actions` | Container actions against a resolved node |
 //! | `pool_placement` | Typed hardware selection for [`crate::DeployTarget::Pool`] |
 //! | `contracts` / `capabilities` | Shared DTOs and per-node capability maps |
+//! | `undrain` | [`crate::undrain_node`]: operator move from draining back to online |
 
 mod actions;
 mod agent_enrollment;
@@ -30,6 +31,7 @@ mod node_actions;
 mod pool_placement;
 mod projections;
 mod secret_resolver;
+mod undrain;
 
 pub use agent_enrollment::{
     create_host_enrollment, enrollment_strict_new_nodes, list_enrollments_for_bootstrap_session,
@@ -71,6 +73,7 @@ pub use pool_placement::{
     NodeHardwareRequirements, PoolPlacementStrategy, PoolResolutionError, UnmetRequirement,
     VirtualPoolPlacementPolicy, VirtualPoolSelector,
 };
+pub use undrain::undrain_node;
 
 pub use node_actions::{
     cancel_node_action, cancel_non_terminal_node_actions_for_correlation,

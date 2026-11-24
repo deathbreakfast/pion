@@ -526,6 +526,8 @@ pub mod generated;
 #[cfg(feature = "runtime")]
 pub mod logging;
 #[cfg(feature = "runtime")]
+pub mod privacy_policies;
+#[cfg(feature = "runtime")]
 pub mod prom_metrics;
 #[cfg(feature = "runtime")]
 mod schemas;
@@ -561,5 +563,9 @@ pub use control_plane::*;
 pub use photon_bootstrap_node_action_events::maybe_publish_bootstrap_tracked_photon;
 #[cfg(feature = "runtime")]
 pub use photon_host_enrollment_event::publish_bootstrap_host_enrollment_updated;
+#[cfg(feature = "runtime")]
+pub use privacy_policies::{
+    set_permission_checker, PermissionChecker, PermissionGatePolicy, PION_OPERATE_CLOUD_RESOURCES,
+};
 #[cfg(feature = "runtime")]
 pub use valence_bootstrap::{bootstrap_valence, bootstrap_valence_from_env, StorageProfile};
