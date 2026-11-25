@@ -16,4 +16,7 @@
 use valence::privacy_policies::common::{AUTHENTICATED, SYSTEM_ONLY};
 
 #[cfg(feature = "runtime")]
+use crate::privacy_policies::PION_OPERATE_CLOUD_RESOURCES;
+
+#[cfg(feature = "runtime")]
 include!(concat!(env!("OUT_DIR"), "/generated_models.rs"));
