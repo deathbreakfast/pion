@@ -67,6 +67,7 @@
 //! | `PION_STORAGE` | auto | `sqlite` or `hybrid` |
 //! | `PARTON_SHARED_TOKEN` | — | Shared bearer token agents must present on `/api/parton/*`. **Required** at startup unless `PION_ALLOW_INSECURE` is set (see below); the process exits immediately if missing. |
 //! | `PION_ALLOW_INSECURE` | `0` | Set to `1` / `true` / `yes` / `on` to start **without** `PARTON_SHARED_TOKEN` configured and without per-node `x-parton-node-id` binding. Local experiments only — never set this in a reachable deployment. |
+//! | `PION_REQUIRE_CLIENT_CERT` | `0` | Set to `1` / `true` / `yes` / `on` to reject `/api/parton/*` requests unless the reverse proxy forwards `x-ssl-client-verify: 0` (`ssl_c_verify` from the proxy's mTLS frontend). `PION_ALLOW_INSECURE` does not bypass it. See `SECURITY.md`. |
 //!
 //! # Feature flags
 //!
