@@ -6,6 +6,8 @@
 //!   [`insecure_mode_allowed`] (testing only).
 //! - **SPIFFE JWT-SVID** (`PION_AUTH_MODE=dual|spiffe`): verify `Authorization: Bearer`
 //!   against trust-domain + `spiffe://{trust}/parton/node/{node_id}` (see [`super::spiffe`]).
+//! - **Client certificate** (`PION_REQUIRE_CLIENT_CERT=1`): require the proxy-forwarded
+//!   `x-ssl-client-verify: 0` from the `:8443` mTLS frontend.
 //! - **Node binding**: `x-parton-node-id` must match the request `node_id`.
 //! - **Rate limit**: per-key token bucket (`PION_AGENT_RATE_LIMIT_PER_MIN`, default 120).
 //!
@@ -130,6 +132,46 @@ pub(super) fn authorize_agent_request(
     }
 }
 
+/// True when `PION_REQUIRE_CLIENT_CERT` is set to a truthy value (`1` / `true` / `yes` / `on`).
+fn client_cert_required() -> bool {
+    std::env::var("PION_REQUIRE_CLIENT_CERT").is_ok_and(|v| {
+        matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "on"
+        )
+    })
+}
+
+/// When `PION_REQUIRE_CLIENT_CERT` is on, requires the reverse proxy's verified client-cert header.
+///
+/// The reverse proxy's `fe_cp_mtls` frontend (`:8443`, `verify required`) terminates TLS; Pion only sees what
+/// the proxy forwards. The proxy must set `x-ssl-client-verify` from `ssl_c_verify` (`0` means the
+/// certificate chained to the deployment CA) and strip any client-supplied copy on every other
+/// frontend, otherwise the header is spoofable. Off by default so deployments whose proxy does not
+/// forward the header keep working. `PION_ALLOW_INSECURE` does not bypass this check.
+pub(super) fn authorize_client_cert(headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
+    if !client_cert_required() {
+        return Ok(());
+    }
+    let verified = headers
+        .get("x-ssl-client-verify")
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .is_some_and(|v| v == "0");
+    if verified {
+        return Ok(());
+    }
+    tracing::warn!(
+        target: "security.authz",
+        check = "client_cert",
+        "agent request rejected: x-ssl-client-verify header missing or not 0"
+    );
+    Err((
+        StatusCode::UNAUTHORIZED,
+        "Unauthorized agent request (client certificate not verified)".to_string(),
+    ))
+}
+
 /// Requires the `x-parton-node-id` header to be present and equal to `claimed_node_id`.
 ///
 /// The fleet-wide `PARTON_SHARED_TOKEN` authenticates *an* agent, not *which node* it is; without
@@ -210,8 +252,8 @@ pub(super) fn check_agent_rate_limit(
 #[cfg(test)]
 mod tests {
     use super::{
-        authorize_agent_request, authorize_node_binding, check_agent_rate_limit,
-        insecure_mode_allowed, rate_limit_key,
+        authorize_agent_request, authorize_client_cert, authorize_node_binding,
+        check_agent_rate_limit, insecure_mode_allowed, rate_limit_key,
     };
     use axum::http::{HeaderMap, HeaderValue, StatusCode};
     use serial_test::serial;
@@ -220,6 +262,7 @@ mod tests {
     fn clear_auth_env() {
         std::env::remove_var("PARTON_SHARED_TOKEN");
         std::env::remove_var("PION_ALLOW_INSECURE");
+        std::env::remove_var("PION_REQUIRE_CLIENT_CERT");
         std::env::remove_var("PION_AUTH_MODE");
         std::env::remove_var("PION_SPIFFE_TRUST_DOMAIN");
         std::env::remove_var("PION_SPIFFE_JWT_HMAC_SECRET");
@@ -245,6 +288,60 @@ mod tests {
         std::env::set_var("PION_SPIFFE_TRUST_DOMAIN", "example.org");
         std::env::set_var("PION_SPIFFE_JWT_HMAC_SECRET", "test-hmac-secret");
         std::env::set_var("PION_SPIFFE_AUDIENCE", "pion");
+    }
+
+    fn verify_headers(value: &str) -> HeaderMap {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "x-ssl-client-verify",
+            HeaderValue::from_str(value).expect("hdr"),
+        );
+        headers
+    }
+
+    #[test]
+    #[serial]
+    fn client_cert_check_is_off_by_default() {
+        clear_auth_env();
+        assert!(authorize_client_cert(&HeaderMap::new()).is_ok());
+    }
+
+    #[test]
+    #[serial]
+    fn client_cert_check_accepts_verify_zero() {
+        clear_auth_env();
+        std::env::set_var("PION_REQUIRE_CLIENT_CERT", "1");
+        assert!(authorize_client_cert(&verify_headers("0")).is_ok());
+        assert!(authorize_client_cert(&verify_headers(" 0 ")).is_ok());
+        clear_auth_env();
+    }
+
+    #[test]
+    #[serial]
+    fn client_cert_check_rejects_missing_or_failed_verify() {
+        clear_auth_env();
+        std::env::set_var("PION_REQUIRE_CLIENT_CERT", "true");
+        for headers in [
+            HeaderMap::new(),
+            verify_headers("1"),
+            verify_headers("20"),
+            verify_headers(""),
+            verify_headers("00"),
+        ] {
+            let err = authorize_client_cert(&headers).expect_err("must reject");
+            assert_eq!(err.0, StatusCode::UNAUTHORIZED);
+        }
+        clear_auth_env();
+    }
+
+    #[test]
+    #[serial]
+    fn client_cert_check_is_not_bypassed_by_insecure_mode() {
+        clear_auth_env();
+        std::env::set_var("PION_REQUIRE_CLIENT_CERT", "1");
+        std::env::set_var("PION_ALLOW_INSECURE", "1");
+        assert!(authorize_client_cert(&HeaderMap::new()).is_err());
+        clear_auth_env();
     }
 
     fn bearer_headers(jwt: &str) -> HeaderMap {

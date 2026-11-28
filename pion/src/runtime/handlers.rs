@@ -10,7 +10,9 @@ use axum::Json;
 use std::net::SocketAddr;
 use valence::{Actor, Valence};
 
-use super::auth::{authorize_agent_request, authorize_node_binding, check_agent_rate_limit};
+use super::auth::{
+    authorize_agent_request, authorize_client_cert, authorize_node_binding, check_agent_rate_limit,
+};
 use super::HasValenceRouter;
 
 fn valence_for_operation<S: HasValenceRouter>(
@@ -39,6 +41,9 @@ pub(super) async fn ingest_agent_heartbeat_handler<S: HasValenceRouter>(
 ) -> impl IntoResponse {
     let peer_ip = addr.ip().to_string();
     if let Err((status, message)) = check_agent_rate_limit(&peer_ip, &report.node_id) {
+        return (status, message).into_response();
+    }
+    if let Err((status, message)) = authorize_client_cert(&headers) {
         return (status, message).into_response();
     }
     if let Err((status, message)) = authorize_agent_request(&headers, &report.node_id) {
@@ -80,6 +85,9 @@ pub(super) async fn parton_claim_action_handler<S: HasValenceRouter>(
 ) -> impl IntoResponse {
     let peer_ip = addr.ip().to_string();
     if let Err((status, message)) = check_agent_rate_limit(&peer_ip, &body.node_id) {
+        return (status, message).into_response();
+    }
+    if let Err((status, message)) = authorize_client_cert(&headers) {
         return (status, message).into_response();
     }
     if let Err((status, message)) = authorize_agent_request(&headers, &body.node_id) {
@@ -132,6 +140,9 @@ pub(super) async fn parton_extend_action_lease_handler<S: HasValenceRouter>(
     if let Err((status, message)) = check_agent_rate_limit(&peer_ip, &body.node_id) {
         return (status, message).into_response();
     }
+    if let Err((status, message)) = authorize_client_cert(&headers) {
+        return (status, message).into_response();
+    }
     if let Err((status, message)) = authorize_agent_request(&headers, &body.node_id) {
         return (status, message).into_response();
     }
@@ -169,6 +180,9 @@ pub(super) async fn parton_report_action_handler<S: HasValenceRouter>(
 ) -> impl IntoResponse {
     let peer_ip = addr.ip().to_string();
     if let Err((status, message)) = check_agent_rate_limit(&peer_ip, &body.node_id) {
+        return (status, message).into_response();
+    }
+    if let Err((status, message)) = authorize_client_cert(&headers) {
         return (status, message).into_response();
     }
     if let Err((status, message)) = authorize_agent_request(&headers, &body.node_id) {
