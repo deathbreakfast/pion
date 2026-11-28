@@ -141,7 +141,57 @@ async fn verify_pending_enrollment_wire(
     Ok((enrollment_id, effective))
 }
 
+/// Longest `last_error` text stored on an enrollment row.
+const LAST_ERROR_MAX_CHARS: usize = 256;
+
+/// Whether `err` is a rejection of a known ticket worth recording as the ticket's `last_error`.
+///
+/// Malformed tokens, unknown ids and non-pending tickets have no row to record on (or one that
+/// is already settled); [`EnrollmentError::Internal`] is a control-plane fault, not the agent's.
+const fn is_recordable_rejection(err: &EnrollmentError) -> bool {
+    matches!(
+        err,
+        EnrollmentError::Expired
+            | EnrollmentError::SourceIpMismatch
+            | EnrollmentError::TokenMismatch
+            | EnrollmentError::CellIdMismatch
+    )
+}
+
+/// Stores `err` as the pending ticket's `last_error` / `last_error_at`.
+///
+/// The stored text is the fixed [`EnrollmentError`] message, so it never carries the token,
+/// its secret or the peer address.
+async fn record_enrollment_failure(
+    valence: &Valence,
+    enrollment_id: &str,
+    err: &EnrollmentError,
+) -> Result<()> {
+    let Some(row) = PionAgentHostEnrollment::get(enrollment_id, valence, valence::use_!(r"When a new agent's **first heartbeat is rejected** because its enrollment token is wrong, expired, from the wrong host or for the wrong cell, we **load the enrollment ticket it names** to check it is still pending before saving the reason."))
+        .await
+        .with_context(|| format!("load enrollment {enrollment_id} to record failure"))?
+    else {
+        return Ok(());
+    };
+    if *row.status() != PionAgentHostEnrollmentStatus::Pending {
+        return Ok(());
+    }
+    let message: String = err.to_string().chars().take(LAST_ERROR_MAX_CHARS).collect();
+    row.get_mutable(valence, valence::use_!(r"When a new agent's **first heartbeat is rejected**, we **save the reason on its enrollment ticket** (a fixed message such as **enrollment token mismatch**, never the token itself) with the time. Gluon's agent fleet replace shows this reason on a replacement host that never finished enrolling."))
+        .set_last_error(message)?
+        .set_last_error_at(Utc::now())?
+        .commit()
+        .await
+        .with_context(|| format!("commit last_error for enrollment {enrollment_id}"))?;
+    Ok(())
+}
+
 /// Validate enrollment token for a **new** node heartbeat; returns matching `cell_id` to use for ingest.
+///
+/// When the token names a pending ticket but is rejected (expired, wrong secret, wrong source IP
+/// or wrong cell), the rejection message is also saved as the ticket's `last_error` and
+/// `last_error_at`, so a caller waiting for the host to enroll can show why it did not. Saving is
+/// best effort: a storage failure is logged and the original error is still returned.
 ///
 /// # Errors
 ///
@@ -159,9 +209,24 @@ pub async fn validate_enrollment_for_new_node(
     else {
         return Err(EnrollmentError::TokenRequired);
     };
-    let (_id, effective) =
-        verify_pending_enrollment_wire(valence, raw, report_cell_id, peer_ip).await?;
-    Ok(effective)
+    match verify_pending_enrollment_wire(valence, raw, report_cell_id, peer_ip).await {
+        Ok((_id, effective)) => Ok(effective),
+        Err(err) => {
+            if is_recordable_rejection(&err) {
+                if let Some((enrollment_id, _secret)) = parse_enrollment_wire_token(raw) {
+                    if let Err(e) = record_enrollment_failure(valence, &enrollment_id, &err).await {
+                        tracing::warn!(
+                            target: "security.enroll",
+                            enrollment_id = %enrollment_id,
+                            error = %e,
+                            "could not record enrollment failure on ticket"
+                        );
+                    }
+                }
+            }
+            Err(err)
+        }
+    }
 }
 
 /// Mark enrollment claimed and pin claimed node id.

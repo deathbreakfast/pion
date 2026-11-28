@@ -85,6 +85,8 @@ pub async fn create_host_enrollment(
         unset,
         serde_json::json!({}),
         None,
+        None,
+        None,
     )
     .context("build host enrollment row")?;
     PionAgentHostEnrollment::upsert(&enrollment_id, row, valence, valence::use_!("When an operator **creates a host enrollment ticket** during setup, we **save it as pending**, with a hash of its token, the host it is expected from and when it expires. The raw token is not stored. The control plane checks the ticket when a new agent first reports in."))
